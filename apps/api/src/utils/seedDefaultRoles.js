@@ -16,7 +16,7 @@ import { ROLE_PERMISSIONS } from './permissions.js';
  * @returns {Promise<{owner, manager, staff, viewer}>} Created role documents
  */
 export const seedDefaultRoles = async (storeId, createdBy, session = null) => {
-  const rolesToCreate = [
+  const rolesData = [
     {
       name: 'Owner',
       slug: 'owner',
@@ -59,14 +59,19 @@ export const seedDefaultRoles = async (storeId, createdBy, session = null) => {
     },
   ];
 
-  const options = session ? { session } : {};
-  const roles = await Role.create(rolesToCreate, options);
+  // Create each role individually (more reliable with transactions)
+  const createdRoles = [];
+  for (const roleData of rolesData) {
+    const role = new Role(roleData);
+    await role.save(session ? { session } : {});
+    createdRoles.push(role);
+  }
 
   return {
-    owner: roles[0],
-    manager: roles[1],
-    staff: roles[2],
-    viewer: roles[3],
+    owner: createdRoles[0],
+    manager: createdRoles[1],
+    staff: createdRoles[2],
+    viewer: createdRoles[3],
   };
 };
 

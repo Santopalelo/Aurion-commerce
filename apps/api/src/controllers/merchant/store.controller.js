@@ -19,7 +19,6 @@ export const createStore = asyncHandler(async (req, res) => {
 
   // ============================================
   // Check if user already has a store
-  // (For MVP, one merchant = one store. We can lift this limit later.)
   // ============================================
   const existingStore = await Store.findOne({ owner: userId });
   if (existingStore) {
@@ -38,16 +37,15 @@ export const createStore = asyncHandler(async (req, res) => {
 
   // ============================================
   // Start MongoDB transaction
-  // (Atomic — all operations succeed OR all fail)
   // ============================================
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
     // ============================================
-    // Step 1: Create the store
+    // Step 1: Create the store using new + save (works better with transactions)
     // ============================================
-    const storeData = {
+    const store = new Store({
       name,
       slug,
       description,
@@ -62,12 +60,11 @@ export const createStore = asyncHandler(async (req, res) => {
       domain: {
         subdomain: slug,
       },
-    };
+      ...(business && { business }),
+      ...(contact && { contact }),
+    });
 
-    if (business) storeData.business = business;
-    if (contact) storeData.contact = contact;
-
-    const [store] = await Store.create([storeData], { session });
+    await store.save({ session });
 
     // ============================================
     // Step 2: Create default roles for the store
@@ -98,45 +95,42 @@ export const createStore = asyncHandler(async (req, res) => {
     const trialEndsAt = new Date();
     trialEndsAt.setDate(trialEndsAt.getDate() + 14); // 14-day trial
 
-    await Subscription.create(
-      [
+    const subscription = new Subscription({
+      store: store._id,
+      owner: userId,
+      plan: 'free',
+      billingCycle: 'monthly',
+      price: 0,
+      currency: store.currency,
+      limits: {
+        products: 10,
+        staff: 1,
+        storageMB: 500,
+        transactionFeePercent: 2,
+        customDomain: false,
+        removeAurionBranding: false,
+        advancedAnalytics: false,
+        multiCurrency: false,
+        apiAccess: false,
+        prioritySupport: false,
+      },
+      status: 'trialing',
+      trialStartedAt: new Date(),
+      trialEndsAt,
+      currentPeriodStart: new Date(),
+      currentPeriodEnd: trialEndsAt,
+      planHistory: [
         {
-          store: store._id,
-          owner: userId,
           plan: 'free',
           billingCycle: 'monthly',
           price: 0,
-          currency: store.currency,
-          limits: {
-            products: 10,
-            staff: 1,
-            storageMB: 500,
-            transactionFeePercent: 2,
-            customDomain: false,
-            removeAurionBranding: false,
-            advancedAnalytics: false,
-            multiCurrency: false,
-            apiAccess: false,
-            prioritySupport: false,
-          },
-          status: 'trialing',
-          trialStartedAt: new Date(),
-          trialEndsAt,
-          currentPeriodStart: new Date(),
-          currentPeriodEnd: trialEndsAt,
-          planHistory: [
-            {
-              plan: 'free',
-              billingCycle: 'monthly',
-              price: 0,
-              reason: 'initial',
-              changedBy: userId,
-            },
-          ],
+          reason: 'initial',
+          changedBy: userId,
         },
       ],
-      { session }
-    );
+    });
+
+    await subscription.save({ session });
 
     // ============================================
     // Commit the transaction
@@ -154,9 +148,7 @@ export const createStore = asyncHandler(async (req, res) => {
       })
     );
   } catch (error) {
-    // ============================================
     // Rollback on any error
-    // ============================================
     await session.abortTransaction();
     session.endSession();
     throw error;

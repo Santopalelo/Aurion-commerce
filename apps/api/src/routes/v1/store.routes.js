@@ -6,6 +6,8 @@ import {
   checkSlugAvailability,
 } from '../../controllers/merchant/store.controller.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
+import { tenantMiddleware } from '../../middleware/tenant.middleware.js';
+import { requirePermission } from '../../middleware/rbac.middleware.js';
 import validate from '../../middleware/validate.middleware.js';
 import {
   createStoreSchema,
@@ -33,5 +35,39 @@ router.get('/my-store', authMiddleware, getMyStore);
 
 // PUT /api/v1/stores/my-store — Update current user's store
 router.put('/my-store', authMiddleware, validate(updateStoreSchema), updateMyStore);
+
+// ============================================
+// TEST ROUTE — Verify middleware chain works
+// (Remove this in production, just for testing)
+// ============================================
+router.get(
+  '/test-middleware',
+  authMiddleware,
+  tenantMiddleware,
+  requirePermission('store:manage'),
+  (req, res) => {
+    res.json({
+      success: true,
+      message: 'All middleware passed successfully!',
+      data: {
+        user: {
+          id: req.user._id,
+          email: req.user.email,
+          fullName: req.user.fullName,
+        },
+        store: {
+          id: req.store._id,
+          name: req.store.name,
+          slug: req.store.slug,
+        },
+        role: {
+          name: req.userRole.name,
+          systemRoleType: req.userRole.systemRoleType,
+          permissionsCount: req.userRole.permissions.length,
+        },
+      },
+    });
+  }
+);
 
 export default router;
