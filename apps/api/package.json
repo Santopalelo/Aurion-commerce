@@ -1,0 +1,37 @@
+{
+  "name": "@aurion/api",
+  "version": "1.0.0",
+  "description": "Aurion Commerce API - Express.js backend",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^8.0.3",
+    "ioredis": "^5.3.2",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^1.41.0",
+    "multer": "^1.4.5-lts.1",
+    "stripe": "^14.10.0",
+    "resend": "^2.1.0",
+    "bull": "^4.12.2",
+    "socket.io": "^4.6.1",
+    "algoliasearch": "^4.22.1",
+    "joi": "^17.11.0",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "dotenv": "^16.3.1",
+    "express-rate-limit": "^7.1.5",
+    "cookie-parser": "^1.4.6",
+    "slugify": "^1.6.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
