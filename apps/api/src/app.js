@@ -5,6 +5,10 @@ import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { env } from './config/env.js';
 import ApiResponse from './utils/ApiResponse.js';
+
+// ============================================
+// IMPORT ROUTES
+// ============================================
 import authRoutes from './routes/v1/auth.routes.js';
 import storeRoutes from './routes/v1/store.routes.js';
 import categoryRoutes from './routes/v1/category.routes.js';
@@ -22,16 +26,40 @@ const app = express();
 // Helmet sets secure HTTP headers (prevents common attacks)
 app.use(helmet());
 
-// CORS — Allow requests from our dashboard and storefront
+// ============================================
+// CORS Configuration (Dev + Production)
+// ============================================
+const allowedOrigins = [
+  env.CLIENT_URL,
+  env.STOREFRONT_URL,
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.PRODUCTION_DASHBOARD_URL,
+  process.env.PRODUCTION_STOREFRONT_URL,
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: [
-      env.CLIENT_URL,        // merchant dashboard (localhost:5173)
-      env.STOREFRONT_URL,    // storefront (localhost:3000)
-    ],
-    credentials: true,       // Allow cookies (needed for refresh tokens)
+    origin: (origin, callback) => {
+      // Allow requests with no origin (Postman, mobile apps, curl)
+      if (!origin) return callback(null, true);
+
+      // Auto-allow all Vercel preview deployments
+      if (origin.endsWith('.vercel.app')) {
+        return callback(null, true);
+      }
+
+      // Check against allowed list
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      console.warn(`❌ CORS blocked: ${origin}`);
+      return callback(new Error('Not allowed by CORS'), false);
+    },
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Store-Slug'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Store-Slug', 'X-Store-Id'],
   })
 );
 
@@ -40,7 +68,6 @@ app.use(
 // ============================================
 
 // Morgan logs every request to the console in development
-// Example: GET /api/v1/products 200 45ms
 if (env.isDevelopment) {
   app.use(morgan('dev'));
 }
@@ -56,10 +83,10 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
 // ============================================
-// HEALTH CHECK ROUTE
+// HEALTH CHECK ROUTES
 // ============================================
-// This route is public — no auth needed
-// Use it to verify the server is running
+// These routes are public — no auth needed
+// Use them to verify the server is running
 
 app.get('/', (req, res) => {
   res.json(
@@ -100,6 +127,7 @@ app.get('/api/v1', (req, res) => {
         auth: '/api/v1/auth',
         stores: '/api/v1/stores',
         products: '/api/v1/products',
+        categories: '/api/v1/categories',
         orders: '/api/v1/orders',
         customers: '/api/v1/customers',
         analytics: '/api/v1/analytics',
@@ -108,7 +136,6 @@ app.get('/api/v1', (req, res) => {
     })
   );
 });
-
 
 // ============================================
 // 404 HANDLER
@@ -185,6 +212,13 @@ app.use((err, req, res, next) => {
   if (err.name === 'TokenExpiredError') {
     return res.status(401).json(
       ApiResponse.error('Token expired', 'TOKEN_EXPIRED')
+    );
+  }
+
+  // CORS errors
+  if (err.message === 'Not allowed by CORS') {
+    return res.status(403).json(
+      ApiResponse.error('Origin not allowed', 'CORS_ERROR')
     );
   }
 
