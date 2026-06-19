@@ -1,0 +1,124 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   GLOBAL STYLES
+   ============================================ */
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-gray-soft text-dark font-sans;
+  }
+
+  /* Better focus rings */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2;
+  }
+}
+
+/* ============================================
+   REUSABLE COMPONENTS
+   ============================================ */
+@layer components {
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2
+           px-4 py-2.5 rounded-lg font-medium text-sm
+           transition-all duration-200
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary-600 text-white
+           hover:bg-primary-700 active:bg-primary-800;
+  }
+
+  .btn-secondary {
+    @apply btn bg-gray-100 text-dark
+           hover:bg-gray-200 active:bg-gray-300;
+  }
+
+  .btn-danger {
+    @apply btn bg-danger text-white
+           hover:bg-red-600 active:bg-red-700;
+  }
+
+  .btn-outline {
+    @apply btn bg-white border border-gray-300 text-dark
+           hover:bg-gray-50 active:bg-gray-100;
+  }
+
+  /* Form Inputs */
+  .input {
+    @apply w-full px-4 py-2.5 rounded-lg border border-gray-300
+           bg-white text-dark text-sm
+           placeholder:text-gray-400
+           focus:border-primary-500 focus:ring-2 focus:ring-primary-200
+           transition-all duration-200
+           disabled:bg-gray-50 disabled:cursor-not-allowed;
+  }
+
+  .input-error {
+    @apply border-danger focus:border-danger focus:ring-red-200;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-dark mb-1.5;
+  }
+
+  .error-text {
+    @apply text-xs text-danger mt-1;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-white rounded-xl border border-gray-200 p-6;
+  }
+
+  /* Badges */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-success {
+    @apply badge bg-green-100 text-green-700;
+  }
+
+  .badge-warning {
+    @apply badge bg-yellow-100 text-yellow-700;
+  }
+
+  .badge-danger {
+    @apply badge bg-red-100 text-red-700;
+  }
+
+  .badge-info {
+    @apply badge bg-blue-100 text-blue-700;
+  }
+}
+
+/* ============================================
+   SCROLLBAR STYLING
+   ============================================ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

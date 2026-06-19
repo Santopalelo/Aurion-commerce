@@ -7,6 +7,8 @@ import { env } from './config/env.js';
 import ApiResponse from './utils/ApiResponse.js';
 import authRoutes from './routes/v1/auth.routes.js';
 import storeRoutes from './routes/v1/store.routes.js';
+import categoryRoutes from './routes/v1/category.routes.js';
+import productRoutes from './routes/v1/product.routes.js';
 
 // ============================================
 // CREATE EXPRESS APP
@@ -87,6 +89,8 @@ app.get('/health', (req, res) => {
 // Mount route modules
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/stores', storeRoutes);
+app.use('/api/v1/categories', categoryRoutes);
+app.use('/api/v1/products', productRoutes);
 
 // API info endpoint
 app.get('/api/v1', (req, res) => {
