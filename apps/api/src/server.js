@@ -17,7 +17,8 @@ const startServer = async () => {
     await connectDB();
 
     // Step 2: Start the Express server
-    const server = app.listen(env.PORT, () => {
+    const PORT = process.env.PORT || env.PORT;
+    const server = app.listen(PORT, () => {
       console.log('\n==========================================');
       console.log(`🚀 ${env.PLATFORM_NAME} API is running!`);
       console.log('==========================================');

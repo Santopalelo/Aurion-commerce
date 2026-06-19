@@ -6,7 +6,20 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    open: true, // Auto-opens browser
+    open: true,
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'query-vendor': ['@tanstack/react-query', 'axios'],
+          'form-vendor': ['react-hook-form', 'zod', '@hookform/resolvers'],
+        },
+      },
+    },
   },
   resolve: {
     alias: {
