@@ -8,6 +8,7 @@ import ProtectedRoute from './ProtectedRoute';
 import CategoryList from '../pages/categories/CategoryList';
 import ProductList from '../pages/products/ProductList';
 import ProductForm from '../pages/products/ProductForm';
+import NotFound from '../pages/NotFound';
 
 const AppRouter = () => {
   return (
@@ -50,7 +51,7 @@ const AppRouter = () => {
 
       {/* DEFAULT REDIRECTS */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };
