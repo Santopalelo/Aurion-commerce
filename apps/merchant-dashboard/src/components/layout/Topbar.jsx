@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Search, ChevronDown, LogOut, User as UserIcon, Settings } from 'lucide-react';
+import {
+  Bell, Search, ChevronDown, LogOut, User as UserIcon, Settings,
+  Menu,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../store/useAuthStore';
 import { authService } from '../../services/auth.service';
 
-const Topbar = () => {
+const Topbar = ({ onMenuClick }) => {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const clearAuth = useAuthStore((state) => state.clearAuth);
@@ -18,7 +21,6 @@ const Topbar = () => {
       toast.success('Logged out successfully');
       navigate('/login');
     } catch (error) {
-      // Even if API call fails, clear local state
       clearAuth();
       navigate('/login');
     }
@@ -30,21 +32,38 @@ const Topbar = () => {
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 sticky top-0 z-30">
-      <div className="h-full px-6 flex items-center justify-between gap-4">
-        {/* Search */}
-        <div className="flex-1 max-w-md">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search products, orders, customers..."
-              className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-transparent rounded-lg text-sm placeholder:text-gray-400 focus:bg-white focus:border-gray-300 focus:ring-0 outline-none transition-all"
-            />
+      <div className="h-full px-4 sm:px-6 flex items-center justify-between gap-3">
+        {/* LEFT SIDE */}
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          {/* Hamburger Menu (mobile only) */}
+          <button
+            onClick={onMenuClick}
+            className="lg:hidden w-10 h-10 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors flex-shrink-0"
+            aria-label="Open menu"
+          >
+            <Menu className="w-5 h-5 text-gray-700" />
+          </button>
+
+          {/* Search (hidden on small mobile, visible on sm+) */}
+          <div className="hidden sm:block flex-1 max-w-md">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search..."
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-transparent rounded-lg text-sm placeholder:text-gray-400 focus:bg-white focus:border-gray-300 focus:ring-0 outline-none transition-all"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Right side */}
-        <div className="flex items-center gap-3">
+        {/* RIGHT SIDE */}
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          {/* Mobile Search Button */}
+          <button className="sm:hidden w-10 h-10 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors">
+            <Search className="w-5 h-5 text-gray-600" />
+          </button>
+
           {/* Notifications */}
           <button className="relative w-10 h-10 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors">
             <Bell className="w-5 h-5 text-gray-600" />
@@ -55,24 +74,25 @@ const Topbar = () => {
           <div className="relative">
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-2 sm:gap-3 px-1 sm:px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white flex items-center justify-center text-sm font-semibold">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white flex items-center justify-center text-sm font-semibold flex-shrink-0">
                 {initials}
               </div>
-              <div className="text-left hidden sm:block">
+              <div className="text-left hidden md:block">
                 <p className="text-sm font-medium text-dark leading-none">
                   {user?.firstName} {user?.lastName}
                 </p>
-                <p className="text-xs text-gray-500 mt-0.5">{user?.email}</p>
+                <p className="text-xs text-gray-500 mt-0.5 truncate max-w-[150px]">
+                  {user?.email}
+                </p>
               </div>
-              <ChevronDown className="w-4 h-4 text-gray-400" />
+              <ChevronDown className="w-4 h-4 text-gray-400 hidden sm:block" />
             </button>
 
             {/* Dropdown */}
             {menuOpen && (
               <>
-                {/* Backdrop to close on click outside */}
                 <div
                   className="fixed inset-0 z-40"
                   onClick={() => setMenuOpen(false)}
