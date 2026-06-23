@@ -13,6 +13,7 @@ import authRoutes from './routes/v1/auth.routes.js';
 import storeRoutes from './routes/v1/store.routes.js';
 import categoryRoutes from './routes/v1/category.routes.js';
 import productRoutes from './routes/v1/product.routes.js';
+import storefrontRoutes from './routes/storefront/sf.routes.js';
 
 // ============================================
 // CREATE EXPRESS APP
@@ -22,8 +23,6 @@ const app = express();
 // ============================================
 // SECURITY MIDDLEWARE
 // ============================================
-
-// Helmet sets secure HTTP headers (prevents common attacks)
 app.use(helmet());
 
 // ============================================
@@ -41,19 +40,13 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (Postman, mobile apps, curl)
       if (!origin) return callback(null, true);
-
-      // Auto-allow all Vercel preview deployments
       if (origin.endsWith('.vercel.app')) {
         return callback(null, true);
       }
-
-      // Check against allowed list
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-
       console.warn(`❌ CORS blocked: ${origin}`);
       return callback(new Error('Not allowed by CORS'), false);
     },
@@ -66,28 +59,17 @@ app.use(
 // ============================================
 // GENERAL MIDDLEWARE
 // ============================================
-
-// Morgan logs every request to the console in development
 if (env.isDevelopment) {
   app.use(morgan('dev'));
 }
 
-// Parse incoming JSON request bodies
-// limit: '10mb' allows product images to be sent as base64 (for now)
 app.use(express.json({ limit: '10mb' }));
-
-// Parse URL-encoded form data
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Parse cookies (needed for refresh token in httpOnly cookie)
 app.use(cookieParser());
 
 // ============================================
 // HEALTH CHECK ROUTES
 // ============================================
-// These routes are public — no auth needed
-// Use them to verify the server is running
-
 app.get('/', (req, res) => {
   res.json(
     ApiResponse.success('🚀 Aurion Commerce API is running', {
@@ -112,12 +94,11 @@ app.get('/health', (req, res) => {
 // ============================================
 // API ROUTES
 // ============================================
-
-// Mount route modules
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/stores', storeRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/products', productRoutes);
+app.use('/api/v1/storefront', storefrontRoutes);
 
 // API info endpoint
 app.get('/api/v1', (req, res) => {
@@ -128,10 +109,10 @@ app.get('/api/v1', (req, res) => {
         stores: '/api/v1/stores',
         products: '/api/v1/products',
         categories: '/api/v1/categories',
+        storefront: '/api/v1/storefront/:storeSlug',
         orders: '/api/v1/orders',
         customers: '/api/v1/customers',
         analytics: '/api/v1/analytics',
-        storefront: '/api/v1/storefront/:storeSlug',
       },
     })
   );
@@ -140,7 +121,6 @@ app.get('/api/v1', (req, res) => {
 // ============================================
 // 404 HANDLER
 // ============================================
-// If no route matches, return a clean 404 error
 app.use((req, res) => {
   res.status(404).json(
     ApiResponse.error(
@@ -153,23 +133,17 @@ app.use((req, res) => {
 // ============================================
 // GLOBAL ERROR HANDLER
 // ============================================
-// This catches ALL errors thrown anywhere in the app
-// Must have 4 parameters (err, req, res, next) to work as error handler
-
 app.use((err, req, res, next) => {
-  // Log error details in development
   if (env.isDevelopment) {
     console.error('❌ Error:', err);
   }
 
-  // If it's one of our custom ApiError instances
   if (err.isOperational) {
     return res.status(err.statusCode).json(
       ApiResponse.error(err.message, err.errorCode, err.details)
     );
   }
 
-  // Mongoose validation error
   if (err.name === 'ValidationError') {
     const details = Object.values(err.errors).map((e) => ({
       field: e.path,
@@ -180,7 +154,6 @@ app.use((err, req, res, next) => {
     );
   }
 
-  // Mongoose duplicate key error (e.g., email already exists)
   if (err.code === 11000) {
     const field = Object.keys(err.keyValue)[0];
     return res.status(409).json(
@@ -192,7 +165,6 @@ app.use((err, req, res, next) => {
     );
   }
 
-  // Mongoose cast error (invalid ObjectId)
   if (err.name === 'CastError') {
     return res.status(400).json(
       ApiResponse.error(
@@ -202,7 +174,6 @@ app.use((err, req, res, next) => {
     );
   }
 
-  // JWT errors
   if (err.name === 'JsonWebTokenError') {
     return res.status(401).json(
       ApiResponse.error('Invalid token', 'INVALID_TOKEN')
@@ -215,15 +186,12 @@ app.use((err, req, res, next) => {
     );
   }
 
-  // CORS errors
   if (err.message === 'Not allowed by CORS') {
     return res.status(403).json(
       ApiResponse.error('Origin not allowed', 'CORS_ERROR')
     );
   }
 
-  // Unknown/unexpected errors
-  // Do not leak internal error details in production
   return res.status(500).json(
     ApiResponse.error(
       env.isProduction
