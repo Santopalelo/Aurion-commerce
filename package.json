@@ -16,6 +16,10 @@
   "start:api": "npm run start --workspace=apps/api",
   "build:dashboard": "npm run build --workspace=apps/merchant-dashboard"
 },
+  "overrides": {
+  "react": "18.2.0",
+  "react-dom": "18.2.0"
+},
   "devDependencies": {
     "turbo": "^1.11.2"
   },
