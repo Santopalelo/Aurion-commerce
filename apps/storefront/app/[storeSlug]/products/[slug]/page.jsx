@@ -17,11 +17,6 @@ export async function generateMetadata({ params }) {
     return {
       title: product.seo?.metaTitle || `${product.title} | ${store.name}`,
       description: product.seo?.metaDescription || product.shortDescription || product.description?.slice(0, 160),
-      openGraph: {
-        title: product.title,
-        description: product.shortDescription,
-        images: product.images?.length > 0 ? product.images.map(img => img.url) : [],
-      },
     };
   } catch {
     return { title: 'Product Not Found' };
@@ -62,12 +57,6 @@ export default async function ProductDetailPage({ params }) {
         <Link href={`/${storeSlug}/products`} className="hover:text-primary-600">
           Products
         </Link>
-        {product.category && (
-          <>
-            <ChevronRight className="w-3.5 h-3.5" />
-            <span className="hover:text-primary-600">{product.category.name}</span>
-          </>
-        )}
         <ChevronRight className="w-3.5 h-3.5" />
         <span className="text-dark font-medium truncate">{product.title}</span>
       </nav>
