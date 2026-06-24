@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { storefrontApi } from '../../lib/api';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import CartDrawer from '../../components/cart/CartDrawer';
 
 export async function generateMetadata({ params }) {
   try {
@@ -29,6 +30,12 @@ export default async function StoreLayout({ children, params }) {
       <Navbar store={storeData.store} />
       <main className="flex-1">{children}</main>
       <Footer store={storeData.store} />
+      
+      {/* Cart Drawer - always rendered at layout level */}
+      <CartDrawer
+        storeSlug={params.storeSlug}
+        currencySymbol={storeData.store.currencySymbol || '$'}
+      />
     </div>
   );
 }

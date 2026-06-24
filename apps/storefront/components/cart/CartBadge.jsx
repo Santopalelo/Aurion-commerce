@@ -6,12 +6,18 @@ import useCartStore from '../../lib/cart';
 
 export default function CartBadge({ storeSlug, onClick }) {
   const [mounted, setMounted] = useState(false);
-  const itemCount = useCartStore((state) => state.getItemCount(storeSlug));
+  
+  // SELECTOR: We select the specific cart for this store.
+  // When this slice of state changes, the component will re-render automatically.
+  const cart = useCartStore((state) => state.carts[storeSlug] || []);
+  
+  const itemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  // Prevent hydration mismatch (localStorage is client-only)
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  if (!mounted) return null;
 
   return (
     <button
@@ -21,8 +27,7 @@ export default function CartBadge({ storeSlug, onClick }) {
     >
       <ShoppingBag className="w-5 h-5 text-gray-700" />
 
-      {/* Show count only after mount to avoid hydration mismatch */}
-      {mounted && itemCount > 0 && (
+      {itemCount > 0 && (
         <span className="absolute top-1 right-1 min-w-[18px] h-[18px] bg-primary-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
           {itemCount > 99 ? '99+' : itemCount}
         </span>

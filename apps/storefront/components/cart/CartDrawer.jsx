@@ -8,11 +8,19 @@ import CartItem from './CartItem';
 import EmptyCart from './EmptyCart';
 
 export default function CartDrawer({ storeSlug, currencySymbol = '$' }) {
+  // Use state selectors properly so it re-renders
   const isOpen = useCartStore((state) => state.isDrawerOpen);
   const closeDrawer = useCartStore((state) => state.closeDrawer);
-  const cart = useCartStore((state) => state.getCart(storeSlug));
-  const subtotal = useCartStore((state) => state.getSubtotal(storeSlug));
-  const savings = useCartStore((state) => state.getSavings(storeSlug));
+  
+  // Select the specific cart
+  const cart = useCartStore((state) => state.carts[storeSlug] || []);
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const savings = cart.reduce((sum, item) => {
+    if (item.compareAtPrice && item.compareAtPrice > item.price) {
+      return sum + (item.compareAtPrice - item.price) * item.quantity;
+    }
+    return sum;
+  }, 0);
 
   // Close on Escape
   useEffect(() => {
@@ -41,7 +49,7 @@ export default function CartDrawer({ storeSlug, currencySymbol = '$' }) {
 
       {/* Drawer */}
       <aside
-        className={`fixed top-0 right-0 z-50 h-screen w-full sm:w-[420px] bg-white shadow-xl flex flex-col transition-transform duration-300 ease-out ${
+        className={`fixed top-0 right-0 z-[60] h-screen w-full sm:w-[420px] bg-white shadow-xl flex flex-col transition-transform duration-300 ease-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -53,7 +61,7 @@ export default function CartDrawer({ storeSlug, currencySymbol = '$' }) {
               Your Cart
               {cart.length > 0 && (
                 <span className="text-gray-500 font-normal ml-1">
-                  ({cart.length})
+                  ({cart.reduce((a, b) => a + b.quantity, 0)})
                 </span>
               )}
             </h2>
@@ -93,7 +101,6 @@ export default function CartDrawer({ storeSlug, currencySymbol = '$' }) {
         {/* Footer */}
         {cart.length > 0 && (
           <div className="border-t border-gray-200 px-5 py-4 space-y-3 flex-shrink-0">
-            {/* Savings */}
             {savings > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-success font-medium">You save</span>
@@ -103,35 +110,24 @@ export default function CartDrawer({ storeSlug, currencySymbol = '$' }) {
               </div>
             )}
 
-            {/* Subtotal */}
             <div className="flex justify-between items-baseline">
               <span className="font-semibold text-dark">Subtotal</span>
               <div className="text-right">
                 <p className="text-xl font-bold text-dark">
                   {currencySymbol}{subtotal.toFixed(2)}
                 </p>
-                <p className="text-xs text-gray-500">
-                  Shipping & taxes at checkout
-                </p>
+                <p className="text-xs text-gray-500">Shipping & taxes at checkout</p>
               </div>
             </div>
 
-            {/* CTAs */}
             <div className="space-y-2 pt-2">
               <Link
                 href={`/${storeSlug}/checkout`}
                 onClick={closeDrawer}
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors"
               >
-                Checkout
+                Proceed to checkout
                 <ArrowRight className="w-4 h-4" />
-              </Link>
-              <Link
-                href={`/${storeSlug}/cart`}
-                onClick={closeDrawer}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-300 text-dark rounded-lg font-semibold hover:bg-gray-50 transition-colors"
-              >
-                View cart
               </Link>
             </div>
           </div>
