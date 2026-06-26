@@ -9,6 +9,8 @@ import CategoryList from '../pages/categories/CategoryList';
 import ProductList from '../pages/products/ProductList';
 import ProductForm from '../pages/products/ProductForm';
 import NotFound from '../pages/NotFound';
+import OrderList from '../pages/orders/OrderList';
+import OrderDetail from '../pages/orders/OrderDetail';
 
 const AppRouter = () => {
   return (
@@ -41,7 +43,8 @@ const AppRouter = () => {
         <Route path="/products" element={<ProductList />} />
         <Route path="/products/new" element={<ProductForm />} />
         <Route path="/products/:id/edit" element={<ProductForm />} />
-        <Route path="/orders" element={<div className="card"><h1 className="text-2xl font-bold">Orders</h1><p className="text-gray-600 mt-2">Coming soon!</p></div>} />
+        <Route path="/orders" element={<OrderList />} />
+        <Route path="/orders/:id" element={<OrderDetail />} />
         <Route path="/customers" element={<div className="card"><h1 className="text-2xl font-bold">Customers</h1><p className="text-gray-600 mt-2">Coming soon!</p></div>} />
         <Route path="/discounts" element={<div className="card"><h1 className="text-2xl font-bold">Discounts</h1><p className="text-gray-600 mt-2">Coming soon!</p></div>} />
         <Route path="/analytics" element={<div className="card"><h1 className="text-2xl font-bold">Analytics</h1><p className="text-gray-600 mt-2">Coming soon!</p></div>} />
