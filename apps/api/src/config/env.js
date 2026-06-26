@@ -47,6 +47,11 @@ export const env = {
   PLATFORM_URL: process.env.PLATFORM_URL,
   ADMIN_EMAIL: process.env.ADMIN_EMAIL,
 
+    // Stripe
+  STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+  STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY,
+  STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+
   isDevelopment: process.env.NODE_ENV === 'development',
   isProduction: process.env.NODE_ENV === 'production',
 };

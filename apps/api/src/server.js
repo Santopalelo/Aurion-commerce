@@ -1,6 +1,7 @@
 // Load environment variables FIRST before anything else
 import './config/env.js';
 import './config/cloudinary.js';
+import './config/stripe.js';
 
 import app from './app.js';
 import { connectDB } from './config/db.js';

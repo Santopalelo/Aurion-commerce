@@ -11,8 +11,7 @@ const api = axios.create({
 });
 
 /**
- * Storefront API methods
- * All endpoints are PUBLIC (no auth required)
+ * Storefront API methods (PUBLIC, no auth required)
  */
 export const storefrontApi = {
   /**
@@ -58,6 +57,47 @@ export const storefrontApi = {
     const { data } = await api.get(
       `/storefront/${storeSlug}/categories/${categorySlug}`,
       { params }
+    );
+    return data.data;
+  },
+
+  // ============================================
+  // PAYMENTS
+  // ============================================
+
+  /**
+   * Create a Stripe Payment Intent
+   */
+  createPaymentIntent: async (storeSlug, payload) => {
+    const { data } = await api.post(
+      `/storefront/${storeSlug}/payment/create-intent`,
+      payload
+    );
+    return data.data;
+  },
+
+  // ============================================
+  // ORDERS
+  // ============================================
+
+  /**
+   * Create an order after successful payment
+   */
+  createOrder: async (storeSlug, payload) => {
+    const { data } = await api.post(
+      `/storefront/${storeSlug}/orders/create`,
+      payload
+    );
+    return data.data;
+  },
+
+  /**
+   * Get order details by order number
+   */
+  getOrder: async (storeSlug, orderNumber, email) => {
+    const { data } = await api.get(
+      `/storefront/${storeSlug}/orders/${orderNumber}`,
+      { params: { email } }
     );
     return data.data;
   },
