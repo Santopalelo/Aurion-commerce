@@ -17,6 +17,7 @@ import orderRoutes from './routes/v1/order.routes.js';
 import storefrontRoutes from './routes/storefront/sf.routes.js';
 import storefrontPaymentRoutes from './routes/storefront/sf.payment.routes.js';
 import storefrontOrderRoutes from './routes/storefront/sf.order.routes.js';
+import storefrontCustomerRoutes from './routes/storefront/sf.customer.routes.js';
 
 // ============================================
 // CREATE EXPRESS APP
@@ -105,6 +106,7 @@ app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/storefront', storefrontRoutes);
 app.use('/api/v1/storefront', storefrontPaymentRoutes);
 app.use('/api/v1/storefront', storefrontOrderRoutes);
+app.use('/api/v1/storefront', storefrontCustomerRoutes);
 
 // API info endpoint
 app.get('/api/v1', (req, res) => {
