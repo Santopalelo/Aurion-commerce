@@ -2,29 +2,23 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Search, Menu, User, ShoppingBag } from 'lucide-react';
+import { Search, Menu, ShoppingBag } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import useCartStore from '../../lib/cart';
+import CustomerMenu from '../customer/CustomerMenu';
 
 export default function Navbar({ store }) {
   const params = useParams();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // Cart state - using direct selectors for reactivity
   const cart = useCartStore((state) => state.carts[params.storeSlug] || []);
   const openDrawer = useCartStore((state) => state.openDrawer);
-
-  // Calculate count
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  const handleCartClick = () => {
-  openDrawer();
-};
 
   const baseUrl = `/${params.storeSlug}`;
 
@@ -41,10 +35,7 @@ export default function Navbar({ store }) {
           </button>
 
           {/* Logo + Store Name */}
-          <Link
-            href={baseUrl}
-            className="flex items-center gap-3 min-w-0"
-          >
+          <Link href={baseUrl} className="flex items-center gap-3 min-w-0">
             {store.logo?.url ? (
               <img
                 src={store.logo.url}
@@ -82,13 +73,13 @@ export default function Navbar({ store }) {
             <button className="w-10 h-10 rounded-lg hover:bg-gray-100 flex items-center justify-center">
               <Search className="w-5 h-5 text-gray-700" />
             </button>
-            <button className="w-10 h-10 rounded-lg hover:bg-gray-100 flex items-center justify-center">
-              <User className="w-5 h-5 text-gray-700" />
-            </button>
 
-            {/* Cart Button (inline instead of separate component) */}
+            {/* Customer Menu (Login/Profile) */}
+            <CustomerMenu storeSlug={params.storeSlug} />
+
+            {/* Cart Button */}
             <button
-              onClick={handleCartClick}
+              onClick={openDrawer}
               className="relative w-10 h-10 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors"
               aria-label="Open cart"
             >
@@ -125,6 +116,13 @@ export default function Navbar({ store }) {
               className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg"
             >
               Cart {itemCount > 0 && `(${itemCount})`}
+            </Link>
+            <Link
+              href={`${baseUrl}/account`}
+              onClick={() => setMenuOpen(false)}
+              className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg"
+            >
+              My Account
             </Link>
           </nav>
         )}
