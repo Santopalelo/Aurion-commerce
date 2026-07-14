@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Menu, X, Sparkles, ArrowRight } from 'lucide-react';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'https://aurion-commerce-merchant-dashboard.vercel.app/dashboard';
+const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'https://aurion-commerce-merchant-dashboard.vercel.app';
 
 export default function MarketingNavbar() {
   const [menuOpen, setMenuOpen] = useState(false);

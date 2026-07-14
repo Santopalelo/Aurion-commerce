@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Sparkles, Github, Twitter } from 'lucide-react';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'https://aurion-commerce-merchant-dashboard.vercel.app/dashboard';
+const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'https://aurion-commerce-merchant-dashboard.vercel.app';
 
 export default function MarketingFooter() {
   return (

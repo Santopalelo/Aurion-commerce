@@ -7,7 +7,7 @@ import {
 import MarketingNavbar from '../components/marketing/MarketingNavbar';
 import MarketingFooter from '../components/marketing/MarketingFooter';
 
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'https://aurion-commerce-merchant-dashboard.vercel.app/dashboard';
+const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'https://aurion-commerce-merchant-dashboard.vercel.app';
 
 export const metadata = {
   title: 'Aurion Commerce — The Modern Way To Sell Online',
