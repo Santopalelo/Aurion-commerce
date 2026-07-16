@@ -32,8 +32,8 @@ const Stores = () => {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-dark">Stores</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-dark">Stores</h1>
+        <p className="text-sm text-gray-600 mt-1">
           {meta.total || 0} stores across the platform
         </p>
       </div>
@@ -54,14 +54,14 @@ const Stores = () => {
           />
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
           <select
             value={statusFilter}
             onChange={(e) => {
               setStatusFilter(e.target.value);
               setPage(1);
             }}
-            className="px-4 py-2 rounded-lg border border-gray-200 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+            className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
           >
             <option value="">All statuses</option>
             <option value="active">Active</option>
@@ -76,7 +76,7 @@ const Stores = () => {
               setPlanFilter(e.target.value);
               setPage(1);
             }}
-            className="px-4 py-2 rounded-lg border border-gray-200 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+            className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
           >
             <option value="">All plans</option>
             <option value="free">Free</option>
@@ -99,73 +99,111 @@ const Stores = () => {
           <p className="text-gray-600">No stores found</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          {/* Header row */}
-          <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-600 uppercase">
-            <div className="col-span-4">Store</div>
-            <div className="col-span-3">Owner</div>
-            <div className="col-span-1">Products</div>
-            <div className="col-span-1">Orders</div>
-            <div className="col-span-2">Revenue</div>
-            <div className="col-span-1">Status</div>
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden lg:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+            {/* Header row */}
+            <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-600 uppercase">
+              <div className="col-span-4">Store</div>
+              <div className="col-span-3">Owner</div>
+              <div className="col-span-1">Products</div>
+              <div className="col-span-1">Orders</div>
+              <div className="col-span-2">Revenue</div>
+              <div className="col-span-1">Status</div>
+            </div>
+
+            {/* Rows */}
+            <div className="divide-y divide-gray-100">
+              {stores.map((store) => (
+                <Link
+                  key={store._id}
+                  to={`/stores/${store._id}`}
+                  className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="col-span-4 flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold flex-shrink-0">
+                      {store.name?.[0]?.toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-dark truncate">{store.name}</p>
+                      <p className="text-xs text-gray-500 truncate">
+                        /{store.slug} • {formatRelativeTime(store.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="col-span-3 min-w-0">
+                    <p className="text-sm text-dark truncate">
+                      {store.owner?.firstName} {store.owner?.lastName}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {store.owner?.email}
+                    </p>
+                  </div>
+
+                  <div className="col-span-1">
+                    <p className="text-sm font-semibold text-dark">
+                      {store.stats?.productCount || 0}
+                    </p>
+                  </div>
+
+                  <div className="col-span-1">
+                    <p className="text-sm font-semibold text-dark">
+                      {store.stats?.orderCount || 0}
+                    </p>
+                  </div>
+
+                  <div className="col-span-2">
+                    <p className="text-sm font-bold text-dark">
+                      {formatPrice(store.stats?.revenue || 0)}
+                    </p>
+                    <p className="text-xs text-gray-500 capitalize">{store.plan} plan</p>
+                  </div>
+
+                  <div className="col-span-1 flex items-center">
+                    <span
+                      className={clsx(
+                        'inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize',
+                        {
+                          'bg-green-100 text-green-700': store.status === 'active',
+                          'bg-yellow-100 text-yellow-700': store.status === 'setup',
+                          'bg-red-100 text-red-700': store.status === 'suspended',
+                          'bg-gray-100 text-gray-700': store.status === 'inactive',
+                        }
+                      )}
+                    >
+                      {store.status}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
 
-          {/* Rows */}
-          <div className="divide-y divide-gray-100">
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-3">
             {stores.map((store) => (
               <Link
                 key={store._id}
                 to={`/stores/${store._id}`}
-                className="grid grid-cols-1 md:grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-50 transition-colors"
+                className="block bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-all"
               >
-                {/* Store */}
-                <div className="md:col-span-4 flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold flex-shrink-0">
-                    {store.name?.[0]?.toUpperCase()}
+                {/* Top row */}
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-11 h-11 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold flex-shrink-0">
+                      {store.name?.[0]?.toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-dark truncate">{store.name}</p>
+                      <p className="text-xs text-gray-500 truncate">
+                        /{store.slug}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-dark truncate">{store.name}</p>
-                    <p className="text-xs text-gray-500 truncate">
-                      /{store.slug} • {formatRelativeTime(store.createdAt)}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Owner */}
-                <div className="md:col-span-3 min-w-0">
-                  <p className="text-sm text-dark truncate">
-                    {store.owner?.firstName} {store.owner?.lastName}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {store.owner?.email}
-                  </p>
-                </div>
-
-                {/* Stats */}
-                <div className="md:col-span-1">
-                  <p className="text-sm font-semibold text-dark">
-                    {store.stats?.productCount || 0}
-                  </p>
-                </div>
-
-                <div className="md:col-span-1">
-                  <p className="text-sm font-semibold text-dark">
-                    {store.stats?.orderCount || 0}
-                  </p>
-                </div>
-
-                <div className="md:col-span-2">
-                  <p className="text-sm font-bold text-dark">
-                    {formatPrice(store.stats?.revenue || 0)}
-                  </p>
-                  <p className="text-xs text-gray-500 capitalize">{store.plan} plan</p>
-                </div>
-
-                {/* Status */}
-                <div className="md:col-span-1 flex items-center">
                   <span
                     className={clsx(
-                      'inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize',
+                      'flex-shrink-0 px-2 py-0.5 rounded-full text-xs font-medium capitalize',
                       {
                         'bg-green-100 text-green-700': store.status === 'active',
                         'bg-yellow-100 text-yellow-700': store.status === 'setup',
@@ -177,15 +215,56 @@ const Stores = () => {
                     {store.status}
                   </span>
                 </div>
+
+                {/* Owner */}
+                <div className="pb-3 mb-3 border-b border-gray-100">
+                  <p className="text-xs text-gray-500">Owner</p>
+                  <p className="text-sm text-dark truncate">
+                    {store.owner?.firstName} {store.owner?.lastName}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {store.owner?.email}
+                  </p>
+                </div>
+
+                {/* Stats grid */}
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <p className="text-xs text-gray-500">Products</p>
+                    <p className="text-sm font-bold text-dark mt-0.5">
+                      {store.stats?.productCount || 0}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Orders</p>
+                    <p className="text-sm font-bold text-dark mt-0.5">
+                      {store.stats?.orderCount || 0}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Revenue</p>
+                    <p className="text-sm font-bold text-dark mt-0.5">
+                      {formatPrice(store.stats?.revenue || 0)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                  <p className="text-xs text-gray-500 capitalize">
+                    {store.plan} plan • {formatRelativeTime(store.createdAt)}
+                  </p>
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </div>
               </Link>
             ))}
           </div>
-        </div>
+        </>
       )}
 
       {/* Pagination */}
       {meta.totalPages > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <p className="text-sm text-gray-600">
             Page {meta.page} of {meta.totalPages}
           </p>

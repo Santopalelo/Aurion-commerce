@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Users as UsersIcon, Shield, Ban, CheckCircle2, Loader2 } from 'lucide-react';
+import { Search, Users as UsersIcon, Shield, Ban, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { adminService } from '../services/admin.service';
@@ -63,8 +63,8 @@ const Users = () => {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-dark">Users</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-dark">Users</h1>
+        <p className="text-sm text-gray-600 mt-1">
           {meta.total || 0} platform users
         </p>
       </div>
@@ -91,7 +91,7 @@ const Users = () => {
             setRoleFilter(e.target.value);
             setPage(1);
           }}
-          className="px-4 py-2 rounded-lg border border-gray-200 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+          className="w-full sm:w-auto px-4 py-2 rounded-lg border border-gray-200 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
         >
           <option value="">All roles</option>
           <option value="merchant">Merchants</option>
@@ -116,59 +116,60 @@ const Users = () => {
             {users.map((user) => (
               <div
                 key={user._id}
-                className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors"
+                className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 hover:bg-gray-50 transition-colors"
               >
-                {/* Avatar */}
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-semibold flex-shrink-0">
-                  {user.firstName?.[0]}{user.lastName?.[0]}
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold text-dark">
-                      {user.firstName} {user.lastName}
-                    </p>
-                    {user.platformRole === 'platform_admin' && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary-100 text-primary-700 text-xs font-semibold rounded-full">
-                        <Shield className="w-3 h-3" />
-                        Admin
-                      </span>
-                    )}
-                    {user.isSuspended && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
-                        <Ban className="w-3 h-3" />
-                        Suspended
-                      </span>
-                    )}
+                {/* Top: Avatar + Info */}
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-semibold flex-shrink-0">
+                    {user.firstName?.[0]}{user.lastName?.[0]}
                   </div>
-                  <p className="text-sm text-gray-500 truncate">{user.email}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    Joined {formatRelativeTime(user.createdAt)} •{' '}
-                    {user.storeAccess?.length || 0} stores
-                  </p>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                      <p className="font-semibold text-dark">
+                        {user.firstName} {user.lastName}
+                      </p>
+                      {user.platformRole === 'platform_admin' && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary-100 text-primary-700 text-xs font-semibold rounded-full">
+                          <Shield className="w-3 h-3" />
+                          Admin
+                        </span>
+                      )}
+                      {user.isSuspended && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
+                          <Ban className="w-3 h-3" />
+                          Suspended
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Joined {formatRelativeTime(user.createdAt)} •{' '}
+                      {user.storeAccess?.length || 0} stores
+                    </p>
+                  </div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2">
-                  {user.platformRole !== 'platform_admin' && (
-                    user.isSuspended ? (
+                {user.platformRole !== 'platform_admin' && (
+                  <div className="flex sm:flex-shrink-0">
+                    {user.isSuspended ? (
                       <button
                         onClick={() => handleUnsuspend(user)}
-                        className="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100"
+                        className="w-full sm:w-auto px-4 py-2 text-xs font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100"
                       >
                         Unsuspend
                       </button>
                     ) : (
                       <button
                         onClick={() => handleSuspend(user)}
-                        className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100"
+                        className="w-full sm:w-auto px-4 py-2 text-xs font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100"
                       >
                         Suspend
                       </button>
-                    )
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -177,7 +178,7 @@ const Users = () => {
 
       {/* Pagination */}
       {meta.totalPages > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <p className="text-sm text-gray-600">
             Page {meta.page} of {meta.totalPages}
           </p>
