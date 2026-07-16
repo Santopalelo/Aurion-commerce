@@ -1,16 +1,19 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import Login from '../pages/auth/Login';
-import Register from '../pages/auth/Register';
-import CreateStore from '../pages/onboarding/CreateStore';
-import Overview from '../pages/dashboard/Overview';
-import DashboardLayout from '../components/layout/DashboardLayout';
-import ProtectedRoute from './ProtectedRoute';
-import CategoryList from '../pages/categories/CategoryList';
-import ProductList from '../pages/products/ProductList';
-import ProductForm from '../pages/products/ProductForm';
-import NotFound from '../pages/NotFound';
-import OrderList from '../pages/orders/OrderList';
-import OrderDetail from '../pages/orders/OrderDetail';
+import { Routes, Route, Navigate } from "react-router-dom";
+import Login from "../pages/auth/Login";
+import Register from "../pages/auth/Register";
+import CreateStore from "../pages/onboarding/CreateStore";
+import Overview from "../pages/dashboard/Overview";
+import DashboardLayout from "../components/layout/DashboardLayout";
+import ProtectedRoute from "./ProtectedRoute";
+import CategoryList from "../pages/categories/CategoryList";
+import ProductList from "../pages/products/ProductList";
+import ProductForm from "../pages/products/ProductForm";
+import NotFound from "../pages/NotFound";
+import OrderList from "../pages/orders/OrderList";
+import OrderDetail from "../pages/orders/OrderDetail";
+import CustomerList from "../pages/customers/CustomerList";
+import DiscountList from "../pages/discounts/DiscountList";
+import GeneralSettings from "../pages/settings/GeneralSettings";
 
 const AppRouter = () => {
   return (
@@ -45,11 +48,29 @@ const AppRouter = () => {
         <Route path="/products/:id/edit" element={<ProductForm />} />
         <Route path="/orders" element={<OrderList />} />
         <Route path="/orders/:id" element={<OrderDetail />} />
-        <Route path="/customers" element={<div className="card"><h1 className="text-2xl font-bold">Customers</h1><p className="text-gray-600 mt-2">Coming soon!</p></div>} />
-        <Route path="/discounts" element={<div className="card"><h1 className="text-2xl font-bold">Discounts</h1><p className="text-gray-600 mt-2">Coming soon!</p></div>} />
-        <Route path="/analytics" element={<div className="card"><h1 className="text-2xl font-bold">Analytics</h1><p className="text-gray-600 mt-2">Coming soon!</p></div>} />
-        <Route path="/aurion-store" element={<div className="card"><h1 className="text-2xl font-bold">Aurion Store</h1><p className="text-gray-600 mt-2">Browse themes and plugins. Coming soon!</p></div>} />
-        <Route path="/settings" element={<div className="card"><h1 className="text-2xl font-bold">Settings</h1><p className="text-gray-600 mt-2">Coming soon!</p></div>} />
+        <Route path="/customers" element={<CustomerList />} />
+        <Route path="/discounts" element={<DiscountList />} />
+        <Route path="/settings" element={<GeneralSettings />} />
+        <Route
+          path="/analytics"
+          element={
+            <div className="card">
+              <h1 className="text-2xl font-bold">Analytics</h1>
+              <p className="text-gray-600 mt-2">Coming soon!</p>
+            </div>
+          }
+        />
+        <Route
+          path="/aurion-store"
+          element={
+            <div className="card">
+              <h1 className="text-2xl font-bold">Aurion Store</h1>
+              <p className="text-gray-600 mt-2">
+                Browse themes and plugins. Coming soon!
+              </p>
+            </div>
+          }
+        />
       </Route>
 
       {/* DEFAULT REDIRECTS */}
