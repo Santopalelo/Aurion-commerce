@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import User from '../../models/auth/User.model.js';
 import ApiResponse from '../../utils/ApiResponse.js';
 import ApiError from '../../utils/ApiError.js';
@@ -8,7 +9,6 @@ import {
   generateAccessToken,
   refreshTokenCookieOptions,
 } from '../../utils/generateToken.js';
-import crypto from 'crypto';
 import { sendPasswordResetEmail } from '../../services/email.service.js';
 
 /**
@@ -19,9 +19,7 @@ import { sendPasswordResetEmail } from '../../services/email.service.js';
 export const register = asyncHandler(async (req, res) => {
   const { firstName, lastName, email, password, phone } = req.body;
 
-  // ============================================
   // Check if user already exists
-  // ============================================
   const existingUser = await User.findOne({ email });
   if (existingUser) {
     throw new ApiError(
@@ -31,10 +29,7 @@ export const register = asyncHandler(async (req, res) => {
     );
   }
 
-  // ============================================
   // Create the user
-  // (password gets hashed automatically by pre-save hook)
-  // ============================================
   const user = await User.create({
     firstName,
     lastName,
@@ -44,27 +39,18 @@ export const register = asyncHandler(async (req, res) => {
     platformRole: 'merchant',
   });
 
-  // ============================================
   // Generate tokens
-  // ============================================
   const { accessToken, refreshToken } = generateAuthTokens(user._id);
 
-  // ============================================
   // Set refresh token in httpOnly cookie
-  // ============================================
   res.cookie('refreshToken', refreshToken, refreshTokenCookieOptions);
 
-  // ============================================
   // Update login tracking
-  // ============================================
   user.lastLoginAt = new Date();
   user.loginCount = 1;
   user.lastLoginIp = req.ip;
   await user.save();
 
-  // ============================================
-  // Return response (without password)
-  // ============================================
   const userResponse = user.toObject();
   delete userResponse.password;
 
@@ -72,7 +58,6 @@ export const register = asyncHandler(async (req, res) => {
     ApiResponse.success('Account created successfully', {
       user: userResponse,
       accessToken,
-      // We don't return refreshToken in body — it's in the cookie
     })
   );
 });
@@ -85,9 +70,6 @@ export const register = asyncHandler(async (req, res) => {
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  // ============================================
-  // Find user (must include password field)
-  // ============================================
   const user = await User.findOne({ email }).select('+password');
 
   if (!user) {
@@ -98,9 +80,6 @@ export const login = asyncHandler(async (req, res) => {
     );
   }
 
-  // ============================================
-  // Check user status
-  // ============================================
   if (!user.isActive) {
     throw new ApiError(
       403,
@@ -117,9 +96,6 @@ export const login = asyncHandler(async (req, res) => {
     );
   }
 
-  // ============================================
-  // Verify password
-  // ============================================
   const isPasswordValid = await user.comparePassword(password);
   if (!isPasswordValid) {
     throw new ApiError(
@@ -129,25 +105,15 @@ export const login = asyncHandler(async (req, res) => {
     );
   }
 
-  // ============================================
-  // Generate tokens
-  // ============================================
   const { accessToken, refreshToken } = generateAuthTokens(user._id);
 
-  // Set refresh token in httpOnly cookie
   res.cookie('refreshToken', refreshToken, refreshTokenCookieOptions);
 
-  // ============================================
-  // Update login tracking
-  // ============================================
   user.lastLoginAt = new Date();
   user.loginCount = (user.loginCount || 0) + 1;
   user.lastLoginIp = req.ip;
   await user.save();
 
-  // ============================================
-  // Return response
-  // ============================================
   const userResponse = user.toObject();
   delete userResponse.password;
 
@@ -165,9 +131,6 @@ export const login = asyncHandler(async (req, res) => {
  * @access  Public (requires refresh token cookie)
  */
 export const refreshToken = asyncHandler(async (req, res) => {
-  // ============================================
-  // Get refresh token from cookie
-  // ============================================
   const token = req.cookies.refreshToken;
 
   if (!token) {
@@ -178,9 +141,6 @@ export const refreshToken = asyncHandler(async (req, res) => {
     );
   }
 
-  // ============================================
-  // Verify refresh token
-  // ============================================
   let decoded;
   try {
     decoded = verifyRefreshToken(token);
@@ -196,17 +156,11 @@ export const refreshToken = asyncHandler(async (req, res) => {
     throw new ApiError(401, 'Invalid token type', 'INVALID_TOKEN_TYPE');
   }
 
-  // ============================================
-  // Verify user still exists and is active
-  // ============================================
   const user = await User.findById(decoded.userId);
   if (!user || !user.isActive || user.isSuspended) {
     throw new ApiError(401, 'User account is not accessible', 'USER_INACCESSIBLE');
   }
 
-  // ============================================
-  // Generate new access token
-  // ============================================
   const newAccessToken = generateAccessToken(user._id);
 
   return res.status(200).json(
@@ -222,18 +176,12 @@ export const refreshToken = asyncHandler(async (req, res) => {
  * @access  Private
  */
 export const logout = asyncHandler(async (req, res) => {
-  // ============================================
-  // Clear the refresh token cookie
-  // ============================================
   res.clearCookie('refreshToken', {
     httpOnly: true,
     sameSite: refreshTokenCookieOptions.sameSite,
     secure: refreshTokenCookieOptions.secure,
     path: '/',
   });
-
-  // TODO: Add token to blacklist in Redis
-  // For now, just clearing the cookie is enough
 
   return res
     .status(200)
@@ -246,12 +194,13 @@ export const logout = asyncHandler(async (req, res) => {
  * @access  Private
  */
 export const getMe = asyncHandler(async (req, res) => {
-  // req.user is already loaded by authMiddleware
   return res.status(200).json(
     ApiResponse.success('User retrieved successfully', {
       user: req.user,
     })
   );
+});
+
 /**
  * @route   POST /api/v1/auth/forgot-password
  * @desc    Request password reset email
@@ -328,7 +277,6 @@ export const resetPassword = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Password must be at least 8 characters', 'PASSWORD_TOO_SHORT');
   }
 
-  // Hash the incoming token to match what's stored
   const hashedToken = crypto
     .createHash('sha256')
     .update(token)
@@ -361,7 +309,7 @@ export const resetPassword = asyncHandler(async (req, res) => {
 
 /**
  * @route   POST /api/v1/auth/verify-reset-token
- * @desc    Verify a reset token is still valid (used before showing the form)
+ * @desc    Verify a reset token is still valid
  * @access  Public
  */
 export const verifyResetToken = asyncHandler(async (req, res) => {
@@ -389,5 +337,4 @@ export const verifyResetToken = asyncHandler(async (req, res) => {
       email: user?.email,
     })
   );
-});
 });
