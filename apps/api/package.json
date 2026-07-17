@@ -5,11 +5,11 @@
   "type": "module",
   "main": "src/server.js",
   "scripts": {
-  "dev": "nodemon src/server.js",
-  "start": "node src/server.js",
-  "lint": "eslint src/",
-  "create:admin": "node scripts/createFirstAdmin.js"
-},
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "lint": "eslint src/",
+    "create:admin": "node scripts/createFirstAdmin.js"
+  },
   "dependencies": {
     "algoliasearch": "^4.22.1",
     "bcryptjs": "^2.4.3",

@@ -5,6 +5,9 @@ import {
   logout,
   refreshToken,
   getMe,
+  forgotPassword,      
+  resetPassword,       
+  verifyResetToken,    
 } from '../../controllers/auth/auth.controller.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
 import validate from '../../middleware/validate.middleware.js';
@@ -37,5 +40,10 @@ router.post('/logout', authMiddleware, logout);
 
 // GET /api/v1/auth/me
 router.get('/me', authMiddleware, getMe);
+
+// Password reset routes
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
+router.post('/verify-reset-token', verifyResetToken);
 
 export default router;

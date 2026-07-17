@@ -14,6 +14,8 @@ import OrderDetail from "../pages/orders/OrderDetail";
 import CustomerList from "../pages/customers/CustomerList";
 import DiscountList from "../pages/discounts/DiscountList";
 import GeneralSettings from "../pages/settings/GeneralSettings";
+import ForgotPassword from "../pages/auth/ForgotPassword";
+import ResetPassword from "../pages/auth/ResetPassword";
 
 const AppRouter = () => {
   return (
@@ -21,6 +23,8 @@ const AppRouter = () => {
       {/* PUBLIC ROUTES */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* ONBOARDING (requires auth but no store) */}
       <Route

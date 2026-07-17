@@ -8,6 +8,8 @@ import {
   generateAccessToken,
   refreshTokenCookieOptions,
 } from '../../utils/generateToken.js';
+import crypto from 'crypto';
+import { sendPasswordResetEmail } from '../../services/email.service.js';
 
 /**
  * @route   POST /api/v1/auth/register
@@ -250,4 +252,142 @@ export const getMe = asyncHandler(async (req, res) => {
       user: req.user,
     })
   );
+/**
+ * @route   POST /api/v1/auth/forgot-password
+ * @desc    Request password reset email
+ * @access  Public
+ */
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new ApiError(400, 'Email is required', 'NO_EMAIL');
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase() });
+
+  // Always return success (prevent email enumeration attacks)
+  if (!user) {
+    return res.status(200).json(
+      ApiResponse.success(
+        'If an account exists with that email, a reset link has been sent.'
+      )
+    );
+  }
+
+  // Generate reset token
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(rawToken)
+    .digest('hex');
+
+  // Save hashed token + expiry (1 hour)
+  user.passwordResetToken = hashedToken;
+  user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
+  await user.save();
+
+  // Send email
+  try {
+    await sendPasswordResetEmail({
+      to: user.email,
+      firstName: user.firstName,
+      resetToken: rawToken,
+    });
+  } catch (error) {
+    // If email fails, clear the token
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+
+    throw new ApiError(
+      500,
+      'Could not send reset email. Please try again.',
+      'EMAIL_SEND_FAILED'
+    );
+  }
+
+  return res.status(200).json(
+    ApiResponse.success(
+      'If an account exists with that email, a reset link has been sent.'
+    )
+  );
+});
+
+/**
+ * @route   POST /api/v1/auth/reset-password
+ * @desc    Reset password using token
+ * @access  Public
+ */
+export const resetPassword = asyncHandler(async (req, res) => {
+  const { token, password } = req.body;
+
+  if (!token) throw new ApiError(400, 'Token is required', 'NO_TOKEN');
+  if (!password) throw new ApiError(400, 'Password is required', 'NO_PASSWORD');
+  if (password.length < 8) {
+    throw new ApiError(400, 'Password must be at least 8 characters', 'PASSWORD_TOO_SHORT');
+  }
+
+  // Hash the incoming token to match what's stored
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(token)
+    .digest('hex');
+
+  const user = await User.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetExpires: { $gt: Date.now() },
+  }).select('+password');
+
+  if (!user) {
+    throw new ApiError(
+      400,
+      'Invalid or expired reset link. Please request a new one.',
+      'INVALID_TOKEN'
+    );
+  }
+
+  // Update password
+  user.password = password;
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+  user.passwordChangedAt = new Date();
+  await user.save();
+
+  return res.status(200).json(
+    ApiResponse.success('Password reset successfully. You can now log in.')
+  );
+});
+
+/**
+ * @route   POST /api/v1/auth/verify-reset-token
+ * @desc    Verify a reset token is still valid (used before showing the form)
+ * @access  Public
+ */
+export const verifyResetToken = asyncHandler(async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    return res.status(200).json(
+      ApiResponse.success('Token check completed', { valid: false })
+    );
+  }
+
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(token)
+    .digest('hex');
+
+  const user = await User.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetExpires: { $gt: Date.now() },
+  }).select('email firstName');
+
+  return res.status(200).json(
+    ApiResponse.success('Token check completed', {
+      valid: !!user,
+      email: user?.email,
+    })
+  );
+});
 });
