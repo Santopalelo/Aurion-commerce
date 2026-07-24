@@ -19,7 +19,7 @@ const startServer = async () => {
 
     // Step 2: Start the Express server
     const PORT = process.env.PORT || env.PORT;
-    const server = app.listen(PORT, () => {
+    const server = app.listen(PORT, "0.0.0.0", () => {
       console.log('\n==========================================');
       console.log(`🚀 ${env.PLATFORM_NAME} API is running!`);
       console.log('==========================================');
