@@ -359,7 +359,7 @@ OrderSchema.index({ 'payment.stripePaymentIntentId': 1 });
 // ============================================
 // PRE-SAVE: Auto-generate order number per store
 // ============================================
-OrderSchema.pre('save', async function (next) {
+OrderSchema.pre('validate', async function (next) {
   if (this.isNew && !this.orderNumber) {
     try {
       // Count existing orders for this store
