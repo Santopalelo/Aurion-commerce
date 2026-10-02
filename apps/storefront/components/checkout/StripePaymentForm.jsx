@@ -40,7 +40,6 @@ export default function StripePaymentForm({
     e.preventDefault();
 
     if (!stripe || !elements) {
-      // Stripe.js not loaded yet
       return;
     }
 
@@ -49,19 +48,17 @@ export default function StripePaymentForm({
 
     try {
       // ============================================
-      // Step 1: Confirm the payment with Stripe
+      // Step 1: Confirm payment with Stripe
       // ============================================
       const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          // We handle the redirect manually after order creation
           return_url: `${window.location.origin}/${storeSlug}/checkout/success`,
         },
-        redirect: 'if_required', // Only redirect for 3D Secure flows
+        redirect: 'if_required',
       });
 
       if (stripeError) {
-        // Show error from Stripe (e.g., card declined)
         setErrorMessage(stripeError.message);
         toast.error(stripeError.message);
         setIsProcessing(false);
@@ -69,34 +66,36 @@ export default function StripePaymentForm({
       }
 
       // ============================================
-      // Step 2: Payment succeeded — create the order in our DB
+      // Step 2: Payment succeeded — create order in DB
       // ============================================
       if (paymentIntent && paymentIntent.status === 'succeeded') {
         toast.success('Payment successful! Creating your order...');
 
         const orderPayload = {
           paymentIntentId: paymentIntent.id,
+          paymentMethod: 'stripe', // Added missing paymentMethod required by backend schemas
           items: cartItems.map((item) => ({
-            productId: item.productId,
+            productId: item.productId || item.id || item._id, // Handles different ID field names
+            variantId: item.variantId || item.variant || undefined,
             quantity: item.quantity,
           })),
           customer: {
-            email: customerData.email,
-            firstName: shippingAddress.firstName,
-            lastName: shippingAddress.lastName,
-            phone: customerData.phone,
-            acceptsMarketing: customerData.acceptsMarketing,
+            email: customerData?.email,
+            firstName: shippingAddress?.firstName || customerData?.firstName || '',
+            lastName: shippingAddress?.lastName || customerData?.lastName || '',
+            phone: customerData?.phone || shippingAddress?.phone || '',
+            acceptsMarketing: Boolean(customerData?.acceptsMarketing),
           },
           shippingAddress: {
-            firstName: shippingAddress.firstName,
-            lastName: shippingAddress.lastName,
-            line1: shippingAddress.address1,
-            line2: shippingAddress.address2 || '',
-            city: shippingAddress.city,
-            state: shippingAddress.state || '',
-            country: shippingAddress.country,
-            zipCode: shippingAddress.zipCode,
-            phone: customerData.phone,
+            firstName: shippingAddress?.firstName || '',
+            lastName: shippingAddress?.lastName || '',
+            line1: shippingAddress?.line1 || shippingAddress?.address1 || '', // Handles line1 vs address1
+            line2: shippingAddress?.line2 || shippingAddress?.address2 || '',
+            city: shippingAddress?.city || '',
+            state: shippingAddress?.state || '',
+            country: shippingAddress?.country || '',
+            zipCode: shippingAddress?.zipCode || shippingAddress?.postalCode || '',
+            phone: customerData?.phone || shippingAddress?.phone || '',
           },
           notes: notes || '',
         };
@@ -107,7 +106,7 @@ export default function StripePaymentForm({
         );
 
         // ============================================
-        // Step 3: Clear cart and redirect to success page
+        // Step 3: Clear cart and redirect
         // ============================================
         clearCart(storeSlug);
 
@@ -117,10 +116,23 @@ export default function StripePaymentForm({
       }
     } catch (error) {
       console.error('Payment error:', error);
-      const message =
+
+      // Extract detailed Joi error messages from backend response
+      const validationDetails =
+        error.response?.data?.errors || error.response?.data?.details;
+
+      let message =
         error.response?.data?.message ||
         error.message ||
         'Something went wrong. Please try again.';
+
+      if (Array.isArray(validationDetails) && validationDetails.length > 0) {
+        const detailMessages = validationDetails
+          .map((d) => `${d.field}: ${d.message}`)
+          .join(' | ');
+        message = `Validation Failed: ${detailMessages}`;
+      }
+
       setErrorMessage(message);
       toast.error(message);
       setIsProcessing(false);
@@ -129,7 +141,7 @@ export default function StripePaymentForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {/* Stripe Payment Element (card input) */}
+      {/* Stripe Payment Element */}
       <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
         <PaymentElement
           options={{
@@ -138,11 +150,11 @@ export default function StripePaymentForm({
         />
       </div>
 
-      {/* Error display */}
+      {/* Detailed Error display */}
       {errorMessage && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
           <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-red-800">{errorMessage}</p>
+          <p className="text-sm text-red-800 break-words">{errorMessage}</p>
         </div>
       )}
 

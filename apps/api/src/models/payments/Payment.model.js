@@ -214,7 +214,6 @@ PaymentSchema.index({ store: 1, order: 1 });
 PaymentSchema.index({ store: 1, status: 1 });
 PaymentSchema.index({ store: 1, customer: 1 });
 PaymentSchema.index({ store: 1, createdAt: -1 });
-PaymentSchema.index({ 'stripe.paymentIntentId': 1 });
 PaymentSchema.index({ 'stripe.chargeId': 1 });
 
 // ============================================

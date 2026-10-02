@@ -26,6 +26,8 @@ import storefrontCustomerRoutes from './routes/storefront/sf.customer.routes.js'
 // CREATE EXPRESS APP
 // ============================================
 const app = express();
+app.set('trust proxy', 1);
+
 
 // ============================================
 // SECURITY MIDDLEWARE
