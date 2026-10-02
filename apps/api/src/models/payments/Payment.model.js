@@ -219,7 +219,7 @@ PaymentSchema.index({ 'stripe.chargeId': 1 });
 // ============================================
 // PRE-SAVE: Generate payment number
 // ============================================
-PaymentSchema.pre('save', async function (next) {
+PaymentSchema.pre('validate', async function (next) {
   if (this.isNew && !this.paymentNumber) {
     try {
       const count = await mongoose.model('Payment').countDocuments({
