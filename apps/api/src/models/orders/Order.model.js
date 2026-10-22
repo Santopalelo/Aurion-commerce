@@ -354,7 +354,12 @@ OrderSchema.index({ store: 1, fulfillmentStatus: 1 });
 OrderSchema.index({ store: 1, customer: 1 });
 OrderSchema.index({ store: 1, createdAt: -1 });
 OrderSchema.index({ 'customerSnapshot.email': 1 });
-OrderSchema.index({ 'payment.stripePaymentIntentId': 1 });
+
+// One order per Stripe payment intent.
+// This is what makes checkout idempotent: if the browser and the Stripe
+// webhook both try to create the order, the second insert is rejected by
+// the database and the service returns the order the first one created.
+OrderSchema.index({ 'payment.stripePaymentIntentId': 1 }, { unique: true, sparse: true });
 
 // ============================================
 // PRE-SAVE: Auto-generate order number per store

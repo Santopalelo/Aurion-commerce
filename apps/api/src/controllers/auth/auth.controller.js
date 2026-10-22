@@ -8,6 +8,7 @@ import {
   verifyRefreshToken,
   generateAccessToken,
   refreshTokenCookieOptions,
+  clearRefreshTokenCookieOptions,
 } from '../../utils/generateToken.js';
 import { sendPasswordResetEmail } from '../../services/email.service.js';
 
@@ -161,6 +162,27 @@ export const refreshToken = asyncHandler(async (req, res) => {
     throw new ApiError(401, 'User account is not accessible', 'USER_INACCESSIBLE');
   }
 
+  // ============================================
+  // Revoke refresh tokens issued BEFORE a password change
+  // ============================================
+  // The access-token middleware already does this check
+  // (middleware/auth.middleware.js, step 5). The refresh path did not, so a
+  // refresh token stolen before a password reset kept working for 7 days.
+  if (user.passwordChangedAt) {
+    const passwordChangedTimestamp = parseInt(
+      user.passwordChangedAt.getTime() / 1000,
+      10
+    );
+
+    if (decoded.iat < passwordChangedTimestamp) {
+      throw new ApiError(
+        401,
+        'Password was changed recently. Please log in again.',
+        'PASSWORD_CHANGED'
+      );
+    }
+  }
+
   const newAccessToken = generateAccessToken(user._id);
 
   return res.status(200).json(
@@ -176,12 +198,9 @@ export const refreshToken = asyncHandler(async (req, res) => {
  * @access  Private
  */
 export const logout = asyncHandler(async (req, res) => {
-  res.clearCookie('refreshToken', {
-    httpOnly: true,
-    sameSite: refreshTokenCookieOptions.sameSite,
-    secure: refreshTokenCookieOptions.secure,
-    path: '/',
-  });
+  // Uses the same attributes the cookie was set with, otherwise the browser
+  // keeps it (see clearRefreshTokenCookieOptions).
+  res.clearCookie('refreshToken', clearRefreshTokenCookieOptions);
 
   return res
     .status(200)

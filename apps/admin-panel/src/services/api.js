@@ -17,15 +17,79 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Queue of requests waiting for the token refresh to finish
+let isRefreshing = false;
+let failedRequestsQueue = [];
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401 && !error.config._retry) {
+  async (error) => {
+    const originalRequest = error.config;
+
+    // ============================================
+    // 401 TOKEN_EXPIRED -> refresh, then replay
+    // ============================================
+    // The access token lives in localStorage and expires after 15 minutes.
+    // The refresh token lives in an httpOnly cookie and is exchanged for a
+    // new access token. Without this the admin would be logged out every
+    // 15 minutes.
+    if (
+      error.response?.status === 401 &&
+      error.response?.data?.error === 'TOKEN_EXPIRED' &&
+      !originalRequest?._retry
+    ) {
+      if (isRefreshing) {
+        // Queue this request until the refresh finishes
+        return new Promise((resolve, reject) => {
+          failedRequestsQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const response = await axios.post(
+          `${API_URL}/auth/refresh-token`,
+          {},
+          { withCredentials: true }
+        );
+
+        const newAccessToken = response.data.data.accessToken;
+        localStorage.setItem('adminAccessToken', newAccessToken);
+
+        failedRequestsQueue.forEach((req) => req.resolve(newAccessToken));
+        failedRequestsQueue = [];
+
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        failedRequestsQueue.forEach((req) => req.reject(refreshError));
+        failedRequestsQueue = [];
+
+        localStorage.removeItem('adminAccessToken');
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    // Any other 401 means the session is genuinely gone
+    if (error.response?.status === 401 && !error.config?._retry) {
       localStorage.removeItem('adminAccessToken');
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
     }
+
     return Promise.reject(error);
   }
 );

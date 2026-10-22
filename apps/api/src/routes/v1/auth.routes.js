@@ -10,6 +10,7 @@ import {
   verifyResetToken,    
 } from '../../controllers/auth/auth.controller.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
+import { requireTrustedOrigin } from '../../middleware/csrf.middleware.js';
 import validate from '../../middleware/validate.middleware.js';
 import {
   registerSchema,
@@ -26,17 +27,21 @@ const router = express.Router();
 router.post('/register', validate(registerSchema), register);
 
 // POST /api/v1/auth/login
-router.post('/login', validate(loginSchema), login);
+// Origin-guarded: the refresh cookie is SameSite=None, so without this a
+// malicious page could log a victim into the attacker's account.
+router.post('/login', requireTrustedOrigin, validate(loginSchema), login);
 
 // POST /api/v1/auth/refresh-token
-router.post('/refresh-token', refreshToken);
+// Origin-guarded: this route reads the refresh cookie.
+router.post('/refresh-token', requireTrustedOrigin, refreshToken);
 
 // ============================================
 // PROTECTED ROUTES (require valid JWT)
 // ============================================
 
 // POST /api/v1/auth/logout
-router.post('/logout', authMiddleware, logout);
+// Origin-guarded: this route clears the refresh cookie.
+router.post('/logout', requireTrustedOrigin, authMiddleware, logout);
 
 // GET /api/v1/auth/me
 router.get('/me', authMiddleware, getMe);

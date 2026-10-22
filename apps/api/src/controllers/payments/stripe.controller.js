@@ -1,25 +1,11 @@
 import Product from '../../models/catalog/Product.model.js';
 import Store from '../../models/tenant/Store.model.js';
+import CheckoutSession from '../../models/checkout/CheckoutSession.model.js';
 import stripe from '../../config/stripe.js';
 import ApiResponse from '../../utils/ApiResponse.js';
 import ApiError from '../../utils/ApiError.js';
 import asyncHandler from '../../utils/asyncHandler.js';
-
-/**
- * Convert dollars/major currency unit to cents/minor unit
- * Stripe works in the smallest currency unit (cents for USD)
- */
-const toStripeAmount = (amount, currency = 'USD') => {
-  // Currencies without decimal places (e.g., JPY, KRW)
-  const zeroDecimalCurrencies = ['BIF', 'CLP', 'DJF', 'GNF', 'JPY', 'KMF', 'KRW', 'MGA', 'PYG', 'RWF', 'UGX', 'VND', 'VUV', 'XAF', 'XOF', 'XPF'];
-
-  if (zeroDecimalCurrencies.includes(currency.toUpperCase())) {
-    return Math.round(amount);
-  }
-
-  // Convert to cents (multiply by 100)
-  return Math.round(amount * 100);
-};
+import { toStripeAmount, fromStripeAmount } from '../../utils/currency.js';
 
 /**
  * @route   POST /api/v1/storefront/:storeSlug/payment/create-intent
@@ -41,7 +27,7 @@ export const createPaymentIntent = asyncHandler(async (req, res) => {
   }
 
   const { storeSlug } = req.params;
-  const { items, customer, shippingAddress } = req.body;
+  const { items, customer, shippingAddress, billingAddress, notes } = req.body;
 
   // ============================================
   // Step 1: Validate input
@@ -129,12 +115,20 @@ export const createPaymentIntent = asyncHandler(async (req, res) => {
     const itemTotal = product.price * quantity;
     subtotal += itemTotal;
 
+    // Primary image, used in the order snapshot and the cart UI
+    const primaryImage =
+      product.images?.find((img) => img.isPrimary) || product.images?.[0];
+
     lineItems.push({
       productId: product._id,
       title: product.title,
+      sku: product.sku || '',
+      image: primaryImage?.url || '',
       price: product.price,
       quantity,
       lineTotal: itemTotal,
+      weight: product.weight?.value || 0,
+      requiresShipping: product.isPhysical !== false,
     });
   }
 
@@ -147,9 +141,6 @@ export const createPaymentIntent = asyncHandler(async (req, res) => {
   const taxAmount = subtotal * taxRate;
   const totalAmount = subtotal + shippingCost + taxAmount;
 
-  // ============================================
-  // Step 5: Create Stripe Payment Intent
-  // ============================================
   const currency = store.currency || 'USD';
   const stripeAmount = toStripeAmount(totalAmount, currency);
 
@@ -162,45 +153,136 @@ export const createPaymentIntent = asyncHandler(async (req, res) => {
     );
   }
 
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: stripeAmount,
-    currency: currency.toLowerCase(),
-    automatic_payment_methods: {
-      enabled: true,
+  // ============================================
+  // Step 5: Snapshot the checkout on OUR side
+  // ============================================
+  // Stripe's webhook can tell us "this payment succeeded", but Stripe has no
+  // idea what was in the cart. If we do not keep a copy of the verified cart,
+  // the customer and the address, then a webhook arriving after the browser
+  // closed would have no way to build the order.
+  //
+  // This CheckoutSession is that copy — and it doubles as the idempotency key
+  // that guarantees one payment produces exactly one order.
+  const checkoutSession = new CheckoutSession({
+    store: store._id,
+    status: 'pending',
+    items: lineItems.map((item) => ({
+      product: item.productId,
+      title: item.title,
+      sku: item.sku,
+      image: item.image,
+      price: item.price,
+      quantity: item.quantity,
+      totalPrice: item.lineTotal,
+      weight: item.weight,
+      requiresShipping: item.requiresShipping,
+    })),
+    customer: {
+      firstName: customer.firstName || shippingAddress.firstName,
+      lastName: customer.lastName || shippingAddress.lastName,
+      email: customer.email.toLowerCase(),
+      phone: customer.phone || shippingAddress.phone,
+      acceptsMarketing: Boolean(customer.acceptsMarketing),
     },
-    metadata: {
-      storeId: store._id.toString(),
-      storeSlug: store.slug,
-      customerEmail: customer.email,
-      itemCount: items.length,
-      subtotal: subtotal.toFixed(2),
-      shippingCost: shippingCost.toFixed(2),
-      tax: taxAmount.toFixed(2),
-      total: totalAmount.toFixed(2),
-    },
-    receipt_email: customer.email,
-    description: `Order from ${store.name}`,
-    shipping: {
-      name: `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.trim(),
+    shippingAddress: {
+      firstName: shippingAddress.firstName || customer.firstName,
+      lastName: shippingAddress.lastName || customer.lastName,
+      line1: shippingAddress.line1,
+      line2: shippingAddress.line2 || '',
+      city: shippingAddress.city,
+      state: shippingAddress.state || '',
+      country: shippingAddress.country || 'US',
+      zipCode: shippingAddress.zipCode,
       phone: shippingAddress.phone || customer.phone,
-      address: {
-        line1: shippingAddress.line1,
-        line2: shippingAddress.line2 || undefined,
-        city: shippingAddress.city,
-        state: shippingAddress.state || undefined,
-        postal_code: shippingAddress.zipCode,
-        country: shippingAddress.country || 'US',
-      },
     },
+    billingAddress: billingAddress
+      ? {
+          firstName: billingAddress.firstName || customer.firstName,
+          line1: billingAddress.line1,
+          line2: billingAddress.line2 || '',
+          city: billingAddress.city,
+          state: billingAddress.state || '',
+          country: billingAddress.country || 'US',
+          zipCode: billingAddress.zipCode,
+          sameAsShipping: false,
+        }
+      : undefined,
+    pricing: {
+      subtotal,
+      shippingCost,
+      taxAmount,
+      discountAmount: 0,
+      total: totalAmount,
+      currency,
+    },
+    notes: notes || '',
+    channel: 'online',
+    ipAddress: req.ip,
+    userAgent: req.headers['user-agent'],
   });
 
+  await checkoutSession.save();
+
   // ============================================
-  // Step 6: Return clientSecret to frontend
+  // Step 6: Create Stripe Payment Intent
+  // ============================================
+  let paymentIntent;
+  try {
+    paymentIntent = await stripe.paymentIntents.create({
+      amount: stripeAmount,
+      currency: currency.toLowerCase(),
+      automatic_payment_methods: {
+        enabled: true,
+      },
+      metadata: {
+        storeId: store._id.toString(),
+        storeSlug: store.slug,
+        // Points the webhook back at the cart it belongs to
+        checkoutSessionId: checkoutSession._id.toString(),
+        customerEmail: customer.email,
+        itemCount: items.length,
+        subtotal: subtotal.toFixed(2),
+        shippingCost: shippingCost.toFixed(2),
+        tax: taxAmount.toFixed(2),
+        total: totalAmount.toFixed(2),
+      },
+      receipt_email: customer.email,
+      description: `Order from ${store.name}`,
+      shipping: {
+        name: `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.trim(),
+        phone: shippingAddress.phone || customer.phone,
+        address: {
+          line1: shippingAddress.line1,
+          line2: shippingAddress.line2 || undefined,
+          city: shippingAddress.city,
+          state: shippingAddress.state || undefined,
+          postal_code: shippingAddress.zipCode,
+          country: shippingAddress.country || 'US',
+        },
+      },
+    });
+  } catch (error) {
+    // Stripe refused the intent — do not leave a live cart behind
+    checkoutSession.markFailed(
+      'payment_intent_failed',
+      error.message || 'Could not create the payment intent'
+    );
+    await checkoutSession.save();
+    throw error;
+  }
+
+  // Link the session to the payment intent (both directions now exist)
+  checkoutSession.paymentIntentId = paymentIntent.id;
+  await checkoutSession.save();
+
+  // ============================================
+  // Step 7: Return clientSecret to frontend
   // ============================================
   return res.status(200).json(
     ApiResponse.success('Payment intent created', {
       clientSecret: paymentIntent.client_secret,
       paymentIntentId: paymentIntent.id,
+      checkoutSessionId: checkoutSession._id.toString(),
       amount: totalAmount,
       currency: currency,
       breakdown: {
@@ -236,7 +318,8 @@ export const verifyPayment = asyncHandler(async (req, res) => {
   return res.status(200).json(
     ApiResponse.success('Payment verified', {
       status: paymentIntent.status,
-      amount: paymentIntent.amount / 100, // Convert back from cents
+      // Not a blind /100 — zero-decimal currencies (JPY, KRW...) have no cents
+      amount: fromStripeAmount(paymentIntent.amount, paymentIntent.currency),
       currency: paymentIntent.currency,
       metadata: paymentIntent.metadata,
     })

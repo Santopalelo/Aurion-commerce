@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { env } from './config/env.js';
+import { isCorsOriginAllowed } from './config/origins.js';
 import ApiResponse from './utils/ApiResponse.js';
 
 // ============================================
@@ -21,6 +22,7 @@ import storefrontRoutes from './routes/storefront/sf.routes.js';
 import storefrontPaymentRoutes from './routes/storefront/sf.payment.routes.js';
 import storefrontOrderRoutes from './routes/storefront/sf.order.routes.js';
 import storefrontCustomerRoutes from './routes/storefront/sf.customer.routes.js';
+import stripeWebhookRoutes from './routes/webhooks/stripe.webhook.routes.js';
 
 // ============================================
 // CREATE EXPRESS APP
@@ -37,23 +39,18 @@ app.use(helmet());
 // ============================================
 // CORS Configuration (Dev + Production)
 // ============================================
-const allowedOrigins = [
-  env.CLIENT_URL,
-  env.STOREFRONT_URL,
-  'http://localhost:5173',
-  'http://localhost:3000',
-  process.env.PRODUCTION_DASHBOARD_URL,
-  process.env.PRODUCTION_STOREFRONT_URL,
-].filter(Boolean);
-
+// The origin lists live in `config/origins.js` so the CORS allow-list and
+// the CSRF origin check (middleware/csrf.middleware.js) can never drift
+// apart. Note the difference:
+//   - CORS   allows any *.vercel.app preview deployment
+//   - CSRF   only allows the explicit TRUSTED_ORIGINS list
+// because the refresh cookie is SameSite=None and must not be handed to
+// arbitrary preview deployments.
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (origin.endsWith('.vercel.app')) {
-        return callback(null, true);
-      }
-      if (allowedOrigins.includes(origin)) {
+      if (isCorsOriginAllowed(origin)) {
         return callback(null, true);
       }
       console.warn(`❌ CORS blocked: ${origin}`);
@@ -71,6 +68,14 @@ app.use(
 if (env.isDevelopment) {
   app.use(morgan('dev'));
 }
+
+// ============================================
+// WEBHOOKS — MOUNTED BEFORE THE JSON PARSER
+// ============================================
+// Stripe signs the exact bytes it sent, so we need the RAW body to verify
+// the signature. If express.json() runs first, the raw bytes are gone and
+// verification is impossible. This must stay above app.use(express.json()).
+app.use('/api/v1/webhooks', stripeWebhookRoutes);
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -129,6 +134,7 @@ app.get('/api/v1', (req, res) => {
         orders: '/api/v1/orders',
         customers: '/api/v1/customers',
         analytics: '/api/v1/analytics',
+        webhooks: '/api/v1/webhooks/stripe',
       },
     })
   );

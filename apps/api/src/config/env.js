@@ -36,6 +36,12 @@ export const env = {
   CLIENT_URL: process.env.CLIENT_URL,
   STOREFRONT_URL: process.env.STOREFRONT_URL,
 
+  // Deployed dashboard / storefront origins. Used for the CORS allow-list
+  // and for the CSRF origin check on cookie-authenticated routes.
+  PRODUCTION_DASHBOARD_URL: process.env.PRODUCTION_DASHBOARD_URL,
+  PRODUCTION_STOREFRONT_URL: process.env.PRODUCTION_STOREFRONT_URL,
+  PRODUCTION_ADMIN_URL: process.env.PRODUCTION_ADMIN_URL,
+
   MONGODB_URI: process.env.MONGODB_URI,
 
   JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET,
