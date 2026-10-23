@@ -177,12 +177,13 @@ app.use((err, req, res, next) => {
   }
 
   if (err.code === 11000) {
-    const field = Object.keys(err.keyValue)[0];
+    const keyValue = err.keyValue || {};
+    const field = Object.keys(keyValue)[0] || 'field';
     return res.status(409).json(
       ApiResponse.error(
         `${field} already exists`,
         'DUPLICATE_KEY',
-        { field, value: err.keyValue[field] }
+        { field, value: keyValue[field] }
       )
     );
   }

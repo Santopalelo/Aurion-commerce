@@ -135,6 +135,25 @@ const CheckoutSessionSchema = new mongoose.Schema(
     },
 
     // ============================================
+    // DISCOUNT APPLIED
+    // ============================================
+    // Set when the customer used a promo code. The amount is the one the
+    // SERVER calculated — never a number sent by the browser.
+    discount: {
+      code: { type: String, uppercase: true },
+      discountId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Discount',
+      },
+      type: {
+        type: String,
+        enum: ['percentage', 'fixed_amount', 'free_shipping', 'buy_x_get_y'],
+      },
+      value: { type: Number },
+      amountSaved: { type: Number, default: 0 },
+    },
+
+    // ============================================
     // EXTRAS
     // ============================================
     notes: { type: String },

@@ -17,7 +17,7 @@ const generateCustomerToken = (customerId, storeId) => {
       storeId,
       type: 'customer',
     },
-    env.JWT_ACCESS_SECRET,
+    env.JWT_CUSTOMER_SECRET,
     { expiresIn: '7d' } // Customers get longer sessions
   );
 };

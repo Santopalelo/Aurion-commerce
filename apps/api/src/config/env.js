@@ -42,10 +42,15 @@ export const env = {
   PRODUCTION_STOREFRONT_URL: process.env.PRODUCTION_STOREFRONT_URL,
   PRODUCTION_ADMIN_URL: process.env.PRODUCTION_ADMIN_URL,
 
+  // Development origins. The Vite apps run on fixed ports, so the defaults
+  // below cover a local checkout with no extra configuration.
+  ADMIN_URL: process.env.ADMIN_URL,
+
   MONGODB_URI: process.env.MONGODB_URI,
 
   JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET,
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
+  JWT_CUSTOMER_SECRET: process.env.JWT_CUSTOMER_SECRET || process.env.JWT_ACCESS_SECRET,
   JWT_ACCESS_EXPIRES: process.env.JWT_ACCESS_EXPIRES || '15m',
   JWT_REFRESH_EXPIRES: process.env.JWT_REFRESH_EXPIRES || '7d',
 
@@ -60,6 +65,19 @@ export const env = {
 
   isDevelopment: process.env.NODE_ENV === 'development',
   isProduction: process.env.NODE_ENV === 'production',
+
+  // ============================================
+  // RATE LIMITS
+  // ============================================
+  // The defaults are the production values. They are configurable so a
+  // merchant behind a shared NAT (an office, a mobile carrier) is not locked
+  // out of checkout, and so the verification scripts can exercise the
+  // checkout paths without tripping the limiter.
+  RATE_LIMIT_PAYMENT_MAX: parseInt(process.env.RATE_LIMIT_PAYMENT_MAX, 10) || 10,
+  RATE_LIMIT_PAYMENT_WINDOW_MS:
+    parseInt(process.env.RATE_LIMIT_PAYMENT_WINDOW_MS, 10) || 60 * 1000,
+  RATE_LIMIT_STOREFRONT_MAX:
+    parseInt(process.env.RATE_LIMIT_STOREFRONT_MAX, 10) || 120,
 };
 
 export default env;

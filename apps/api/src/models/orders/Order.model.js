@@ -1,4 +1,8 @@
 import mongoose from 'mongoose';
+import {
+  nextOrderSequence,
+  formatOrderNumber,
+} from '../../services/order-number.service.js';
 
 /**
  * Order Schema
@@ -364,16 +368,24 @@ OrderSchema.index({ 'payment.stripePaymentIntentId': 1 }, { unique: true, sparse
 // ============================================
 // PRE-SAVE: Auto-generate order number per store
 // ============================================
+// The number comes from an atomic counter, NOT from counting the store's
+// orders. Counting is a check-then-act race: two orders created at the same
+// moment read the same count and compute the same number, and the unique
+// index on { store, orderNumber } then rejects one of them — a 500 *after*
+// the customer has already paid.
+//
+// `findOneAndUpdate({ $inc: { sequence: 1 } })` is atomic, so every caller
+// gets a different number. The upsert can still lose a race with itself
+// (two first-time inserts for the same store), which is a duplicate key
+// error — we retry without `upsert` in that case, and the second caller then
+// increments the counter the first one just created.
 OrderSchema.pre('validate', async function (next) {
   if (this.isNew && !this.orderNumber) {
     try {
-      // Count existing orders for this store
-      const count = await mongoose.model('Order').countDocuments({
-        store: this.store,
-      });
-
-      // Generate sequential order number: AUR-00001
-      this.orderNumber = `AUR-${String(count + 1).padStart(5, '0')}`;
+      const store = await mongoose.model('Store').findById(this.store).select('orderPrefix').lean();
+      const prefix = store?.orderPrefix || 'AUR';
+      const sequence = await nextOrderSequence(this.store);
+      this.orderNumber = formatOrderNumber(sequence, prefix);
 
       // Add initial status to history
       this.statusHistory.push({

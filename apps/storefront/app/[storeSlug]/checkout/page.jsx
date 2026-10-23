@@ -78,18 +78,107 @@ export default function CheckoutPage() {
     }
   }, [mounted, cart.length, storeSlug, router, step]);
 
-  // Calculate totals
+  // ============================================
+  // TOTALS
+  //
+  // The server owns the maths. Until it has answered, the summary shows the
+  // cart subtotal and a "calculating" total — never a guess. The old code
+  // hardcoded `subtotal >= 50 ? 0 : 5` and `subtotal * 0.08` here, which
+  // meant the storefront could show a total the server never charged.
+  // ============================================
+  const [totals, setTotals] = useState(null);
+  const [discountCode, setDiscountCode] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState(null);
+  const [applyingDiscount, setApplyingDiscount] = useState(false);
+
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const savings = cart.reduce((sum, item) => {
-    if (item.compareAtPrice && item.compareAtPrice > item.price) {
-      return sum + (item.compareAtPrice - item.price) * item.quantity;
-    }
-    return sum;
-  }, 0);
-  const shipping = subtotal >= 50 ? 0 : 5;
-  const tax = subtotal * 0.08;
-  const total = subtotal + shipping + tax;
   const currencySymbol = store?.currencySymbol || '$';
+
+  // A stable key for the cart. The store returns a fresh array when the
+  // store has no cart for this slug, so `cart` itself is not a safe effect
+  // dependency — this is.
+  const cartKey = cart
+    .map((item) => `${item.productId}:${item.quantity}`)
+    .join(',');
+
+  // Ask the server what the total is. Runs whenever the cart or the applied
+  // code changes.
+  useEffect(() => {
+    if (!store || cart.length === 0) {
+      setTotals(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    storefrontApi
+      .validateDiscount(storeSlug, {
+        code: appliedDiscount?.code || '',
+        items: cart.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
+      })
+      .then((data) => {
+        if (cancelled) return;
+        setTotals(data.breakdown);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        // The code was rejected — drop it and fall back to no discount.
+        if (appliedDiscount) {
+          setAppliedDiscount(null);
+          setDiscountCode('');
+          toast.error(
+            error.response?.data?.message || 'That code is not valid'
+          );
+        }
+        setTotals(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store, storeSlug, cartKey, appliedDiscount]);
+
+  const shipping = totals?.shipping ?? 0;
+  const tax = totals?.tax ?? 0;
+  const discount = totals?.discount ?? 0;
+  const total = totals?.total ?? subtotal;
+
+  // Apply a promo code
+  const handleApplyDiscount = async (e) => {
+    e.preventDefault();
+    const code = discountCode.trim();
+    if (!code) return;
+
+    setApplyingDiscount(true);
+    try {
+      const data = await storefrontApi.validateDiscount(storeSlug, {
+        code,
+        items: cart.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
+      });
+      setAppliedDiscount(data.discount);
+      setTotals(data.breakdown);
+      toast.success(`Discount applied — you saved ${currencySymbol}${data.discount.amountSaved.toFixed(2)}`);
+    } catch (error) {
+      setAppliedDiscount(null);
+      toast.error(
+        error.response?.data?.message || 'That discount code is not valid'
+      );
+    } finally {
+      setApplyingDiscount(false);
+    }
+  };
+
+  const handleRemoveDiscount = () => {
+    setAppliedDiscount(null);
+    setDiscountCode('');
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -157,6 +246,7 @@ export default function CheckoutPage() {
           zipCode: formData.zipCode,
           phone: formData.phone,
         },
+        discountCode: appliedDiscount?.code,
       };
 
       const response = await storefrontApi.createPaymentIntent(storeSlug, payload);
@@ -619,6 +709,47 @@ export default function CheckoutPage() {
             </div>
 
             <div className="space-y-2 py-4 border-b border-gray-200 text-sm">
+              {/* Promo code */}
+              <div className="pb-4 border-b border-gray-200">
+                {appliedDiscount ? (
+                  <div className="flex items-center justify-between bg-success/10 border border-success/20 rounded-lg px-3 py-2">
+                    <div>
+                      <p className="text-sm font-semibold text-success">
+                        {appliedDiscount.code}
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        -{currencySymbol}{discount.toFixed(2)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemoveDiscount}
+                      className="text-xs text-danger hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleApplyDiscount} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={discountCode}
+                      onChange={(e) => setDiscountCode(e.target.value)}
+                      placeholder="Promo code"
+                      className="flex-1 px-3 py-2 rounded-lg border border-gray-300 bg-white text-dark text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyDiscount}
+                      disabled={applyingDiscount || !discountCode.trim()}
+                      className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {applyingDiscount ? '...' : 'Apply'}
+                    </button>
+                  </form>
+                )}
+              </div>
+
               <div className="flex justify-between">
                 <span className="text-gray-600">Subtotal</span>
                 <span className="font-medium text-dark">
@@ -626,19 +757,19 @@ export default function CheckoutPage() {
                   {subtotal.toFixed(2)}
                 </span>
               </div>
-              {savings > 0 && (
+              {discount > 0 && (
                 <div className="flex justify-between">
                   <span className="text-success">Discount</span>
                   <span className="text-success font-semibold">
                     -{currencySymbol}
-                    {savings.toFixed(2)}
+                    {discount.toFixed(2)}
                   </span>
                 </div>
               )}
               <div className="flex justify-between">
                 <span className="text-gray-600">Shipping</span>
                 <span className="font-medium text-dark">
-                  {shipping === 0 ? (
+                  {totals && shipping === 0 ? (
                     <span className="text-success">FREE</span>
                   ) : (
                     `${currencySymbol}${shipping.toFixed(2)}`
@@ -646,7 +777,7 @@ export default function CheckoutPage() {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Tax (8%)</span>
+                <span className="text-gray-600">Tax</span>
                 <span className="font-medium text-dark">
                   {currencySymbol}
                   {tax.toFixed(2)}
@@ -662,7 +793,7 @@ export default function CheckoutPage() {
                   {total.toFixed(2)}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {store?.currency || 'USD'}
+                  {totals ? store?.currency || 'USD' : 'calculating…'}
                 </p>
               </div>
             </div>

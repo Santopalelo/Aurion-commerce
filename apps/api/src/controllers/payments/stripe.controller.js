@@ -6,6 +6,11 @@ import ApiResponse from '../../utils/ApiResponse.js';
 import ApiError from '../../utils/ApiError.js';
 import asyncHandler from '../../utils/asyncHandler.js';
 import { toStripeAmount, fromStripeAmount } from '../../utils/currency.js';
+import { calculateTotals } from '../../services/pricing.service.js';
+import {
+  getApplicableDiscount,
+  calculateDiscount,
+} from '../../services/discount.service.js';
 
 /**
  * @route   POST /api/v1/storefront/:storeSlug/payment/create-intent
@@ -27,7 +32,14 @@ export const createPaymentIntent = asyncHandler(async (req, res) => {
   }
 
   const { storeSlug } = req.params;
-  const { items, customer, shippingAddress, billingAddress, notes } = req.body;
+  const {
+    items,
+    customer,
+    shippingAddress,
+    billingAddress,
+    notes,
+    discountCode,
+  } = req.body;
 
   // ============================================
   // Step 1: Validate input
@@ -133,15 +145,54 @@ export const createPaymentIntent = asyncHandler(async (req, res) => {
   }
 
   // ============================================
-  // Step 4: Calculate shipping and tax
-  // (For MVP, simple flat rates. Later we can make this configurable.)
+  // Step 4: Apply the discount code (if any)
+  //
+  // The code is a *suggestion* from the browser. Everything about it — does
+  // it exist, is it active, has it expired, does the cart qualify, and what
+  // is it worth — is decided here, on the server, from the real cart.
   // ============================================
-  const shippingCost = subtotal >= 50 ? 0 : 5;
-  const taxRate = 0.08; // 8% tax
-  const taxAmount = subtotal * taxRate;
-  const totalAmount = subtotal + shippingCost + taxAmount;
+  let discount = null;
+  let discountAmount = 0;
+  let freeShipping = false;
 
-  const currency = store.currency || 'USD';
+  if (discountCode) {
+    discount = await getApplicableDiscount({
+      store,
+      code: discountCode,
+      subtotal,
+      totalQuantity: lineItems.reduce((sum, item) => sum + item.quantity, 0),
+    });
+
+    const result = await calculateDiscount({
+      discount,
+      items: lineItems,
+      subtotal,
+    });
+
+    discountAmount = result.amount;
+    freeShipping = result.freeShipping;
+  }
+
+  // ============================================
+  // Step 5: Calculate shipping and tax
+  //
+  // One shared implementation (`services/pricing.service.js`) so the amount
+  // charged, the amount recorded on the order and the amount shown to the
+  // customer can never disagree. The rules come from the store's settings.
+  // ============================================
+  const requiresShipping = lineItems.some((item) => item.requiresShipping);
+
+  const totals = calculateTotals({
+    store,
+    subtotal,
+    discountAmount,
+    freeShipping,
+    requiresShipping,
+    currency: store.currency || 'USD',
+  });
+
+  const { shippingCost, taxAmount, total: totalAmount } = totals;
+  const currency = totals.currency;
   const stripeAmount = toStripeAmount(totalAmount, currency);
 
   // Minimum charge for Stripe (50 cents in USD)
@@ -154,7 +205,7 @@ export const createPaymentIntent = asyncHandler(async (req, res) => {
   }
 
   // ============================================
-  // Step 5: Snapshot the checkout on OUR side
+  // Step 6: Snapshot the checkout on OUR side
   // ============================================
   // Stripe's webhook can tell us "this payment succeeded", but Stripe has no
   // idea what was in the cart. If we do not keep a copy of the verified cart,
@@ -208,13 +259,22 @@ export const createPaymentIntent = asyncHandler(async (req, res) => {
         }
       : undefined,
     pricing: {
-      subtotal,
+      subtotal: totals.subtotal,
       shippingCost,
       taxAmount,
-      discountAmount: 0,
+      discountAmount,
       total: totalAmount,
       currency,
     },
+    discount: discount
+      ? {
+          code: discount.code,
+          discountId: discount._id,
+          type: discount.type,
+          value: discount.value,
+          amountSaved: discountAmount,
+        }
+      : undefined,
     notes: notes || '',
     channel: 'online',
     ipAddress: req.ip,
@@ -224,7 +284,7 @@ export const createPaymentIntent = asyncHandler(async (req, res) => {
   await checkoutSession.save();
 
   // ============================================
-  // Step 6: Create Stripe Payment Intent
+  // Step 7: Create Stripe Payment Intent
   // ============================================
   let paymentIntent;
   try {
@@ -241,10 +301,12 @@ export const createPaymentIntent = asyncHandler(async (req, res) => {
         checkoutSessionId: checkoutSession._id.toString(),
         customerEmail: customer.email,
         itemCount: items.length,
-        subtotal: subtotal.toFixed(2),
+        subtotal: totals.subtotal.toFixed(2),
+        discount: discountAmount.toFixed(2),
         shippingCost: shippingCost.toFixed(2),
         tax: taxAmount.toFixed(2),
         total: totalAmount.toFixed(2),
+        discountCode: discount?.code || '',
       },
       receipt_email: customer.email,
       description: `Order from ${store.name}`,
@@ -276,7 +338,7 @@ export const createPaymentIntent = asyncHandler(async (req, res) => {
   await checkoutSession.save();
 
   // ============================================
-  // Step 7: Return clientSecret to frontend
+  // Step 8: Return clientSecret to frontend
   // ============================================
   return res.status(200).json(
     ApiResponse.success('Payment intent created', {
@@ -286,11 +348,19 @@ export const createPaymentIntent = asyncHandler(async (req, res) => {
       amount: totalAmount,
       currency: currency,
       breakdown: {
-        subtotal,
+        subtotal: totals.subtotal,
+        discount: discountAmount,
         shipping: shippingCost,
         tax: taxAmount,
         total: totalAmount,
       },
+      discount: discount
+        ? {
+            code: discount.code,
+            type: discount.type,
+            amountSaved: discountAmount,
+          }
+        : null,
       items: lineItems,
     })
   );

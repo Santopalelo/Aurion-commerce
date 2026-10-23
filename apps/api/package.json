@@ -11,7 +11,8 @@
     "create:admin": "node scripts/createFirstAdmin.js",
     "migrate:unique-payment-intent": "node scripts/migrateUniquePaymentIntent.js",
     "verify:webhook": "node scripts/verifyWebhook.js",
-    "verify:auth-cookie": "node scripts/verifyAuthCookie.js"
+    "verify:auth-cookie": "node scripts/verifyAuthCookie.js",
+    "verify:checkout": "node scripts/verifyCheckout.js"
   },
   "dependencies": {
     "algoliasearch": "^4.22.1",

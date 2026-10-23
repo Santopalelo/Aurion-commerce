@@ -1,5 +1,7 @@
 import { TrendingUp, DollarSign, ShoppingBag, Users, Package, ArrowUpRight } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import useAuthStore from '../../store/useAuthStore';
+import { orderService } from '../../services/order.service';
 
 const StatCard = ({ icon: Icon, label, value, change, changeType = 'positive' }) => (
   <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
@@ -23,10 +25,24 @@ const StatCard = ({ icon: Icon, label, value, change, changeType = 'positive' })
   </div>
 );
 
+const formatMoney = (amount, symbol = '$') =>
+  `${symbol}${Number(amount || 0).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
 const Overview = () => {
   const user = useAuthStore((state) => state.user);
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['order-stats', '30d'],
+    queryFn: () => orderService.getStats('30d'),
+  });
+
+  const stats = data?.stats || {};
+  const currencySymbol = '$';
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -44,26 +60,25 @@ const Overview = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={DollarSign}
-          label="Total Revenue"
-          value="$0.00"
-          change="+0%"
+          label="Total Revenue (30d)"
+          value={isLoading ? '…' : formatMoney(stats.totalRevenue, currencySymbol)}
         />
         <StatCard
           icon={ShoppingBag}
-          label="Total Orders"
-          value="0"
-          change="+0%"
-        />
-        <StatCard
-          icon={Users}
-          label="New Customers"
-          value="0"
-          change="+0%"
+          label="Total Orders (30d)"
+          value={isLoading ? '…' : stats.totalOrders ?? 0}
         />
         <StatCard
           icon={Package}
-          label="Products"
-          value="0"
+          label="Items Sold (30d)"
+          value={isLoading ? '…' : stats.totalItems ?? 0}
+        />
+        <StatCard
+          icon={DollarSign}
+          label="Avg. Order Value"
+          value={
+            isLoading ? '…' : formatMoney(stats.averageOrderValue, currencySymbol)
+          }
         />
       </div>
 

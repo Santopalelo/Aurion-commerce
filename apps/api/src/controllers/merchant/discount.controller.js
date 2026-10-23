@@ -103,9 +103,17 @@ export const updateDiscount = asyncHandler(async (req, res) => {
     }
   }
 
-  Object.keys(req.body).forEach((key) => {
-    if (req.body[key] !== undefined) {
-      discount[key] = req.body[key];
+  const allowedFields = [
+    'code', 'title', 'description', 'type', 'value', 'buyXGetY',
+    'conditions', 'customerEligibility', 'eligibleCustomers',
+    'usageLimit', 'usageLimitPerCustomer', 'startsAt', 'expiresAt',
+    'isActive', 'canCombineWithProductDiscounts',
+    'canCombineWithShippingDiscounts',
+  ];
+
+  allowedFields.forEach((field) => {
+    if (req.body[field] !== undefined) {
+      discount[field] = req.body[field];
     }
   });
 

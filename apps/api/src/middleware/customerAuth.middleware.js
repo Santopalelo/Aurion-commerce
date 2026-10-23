@@ -31,7 +31,7 @@ export const customerAuthMiddleware = asyncHandler(async (req, res, next) => {
 
   let decoded;
   try {
-    decoded = jwt.verify(token, env.JWT_ACCESS_SECRET);
+    decoded = jwt.verify(token, env.JWT_CUSTOMER_SECRET);
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
       throw new ApiError(401, 'Session expired', 'TOKEN_EXPIRED');

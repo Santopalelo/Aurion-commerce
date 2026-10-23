@@ -69,15 +69,15 @@ Verify        → how to prove it's fixed
 
 | Severity | Open | In progress | Fixed | Total |
 |---|---|---|---|---|
-| Critical | 4 | 0 | 2 | 6 |
-| High | 11 | 1 | 1 | 13 |
+| Critical | 1 | 0 | 5 | 6 |
+| High | 10 | 1 | 2 | 13 |
 | Medium | 14 | 0 | 0 | 14 |
-| Low | 7 | 0 | 2 | 9 |
-| **Bugs subtotal** | **36** | **1** | **5** | **42** |
+| Low | 6 | 0 | 3 | 9 |
+| **Bugs subtotal** | **31** | **1** | **10** | **42** |
 | Missing features (GAP) | 85 | 0 | 0 | 85 |
 | Infrastructure (INF) | 20 | 0 | 0 | 20 |
 | Placeholders (PLC) | 19 | 0 | 0 | 19 |
-| **GRAND TOTAL** | **160** | **1** | **5** | **166** |
+| **GRAND TOTAL** | **155** | **1** | **10** | **166** |
 
 ### ID ranges
 | Type | Range | Count |
@@ -101,41 +101,41 @@ If you only do five things, do these:
 
 1. **`BUG-001` — No Stripe webhook.** A customer who pays and closes the tab is never charged-and-recorded correctly. Money leaks. — ✅ **fixed 2026-10-19**
 2. **`BUG-002` — `sameSite: 'strict'` refresh cookie breaks cross-domain token refresh.** The merchant dashboard logs users out every 15 minutes in production. — ✅ **fixed 2026-10-22**
-3. **`BUG-004` — Discounts are never applied at checkout.** The feature is 100% built except for the 20 lines that would wire it up.
-4. **`BUG-007` — The merchant dashboard home page shows hardcoded zeros.** Every merchant thinks their store is empty.
-5. **`BUG-014` — Stripe API version pinned to `2024-06-20`.** Stripe retires API versions. When it does, checkout 500s for everyone at once.
+3. **`BUG-003` — Order-number generation races.** Two concurrent orders get the same number; one is rejected with a 500 *after the customer paid*. — ✅ **fixed 2026-10-22**
+4. **`BUG-004` — Discounts are never applied at checkout.** The feature is 100% built except for the 20 lines that would wire it up. — ✅ **fixed 2026-10-22**
+5. **`BUG-005` — Storefront category pages are empty directories.** Customer-facing 404 for `/{store}/categories`.
 
 ### Bug index (one line each)
 | ID | Title | Sev | Area | Status |
 |---|---|---|---|---|
 | BUG-001 | No Stripe webhook handler | 🔴 Critical | API / Payments | 🟢 Fixed |
 | BUG-002 | `sameSite:'strict'` cookie breaks cross-domain refresh | 🔴 Critical | API / Auth | 🟢 Fixed |
-| BUG-003 | Order-number generation races | 🔴 Critical | API / Orders | 🔴 Open |
-| BUG-004 | Discounts never applied at checkout | 🔴 Critical | API / Payments | 🔴 Open |
+| BUG-003 | Order-number generation races | 🔴 Critical | API / Orders | 🟢 Fixed |
+| BUG-004 | Discounts never applied at checkout | 🔴 Critical | API / Payments | 🟢 Fixed |
 | BUG-005 | Storefront category pages are empty dirs | 🔴 Critical | Storefront | 🔴 Open |
-| BUG-006 | Shipping & tax hardcoded in two files | 🔴 Critical | API / Payments | 🔴 Open |
-| BUG-007 | Dashboard Overview shows hardcoded zeros | 🟠 High | Dashboard | 🔴 Open |
-| BUG-008 | `err.keyValue[0]` unguarded in error handler | 🟠 High | API / Core | 🔴 Open |
+| BUG-006 | Shipping & tax hardcoded in two files | 🔴 Critical | API / Payments | 🟢 Fixed |
+| BUG-007 | Dashboard Overview shows hardcoded zeros | 🟠 High | Dashboard | 🟢 Fixed |
+| BUG-008 | `err.keyValue[0]` unguarded in error handler | 🟠 High | API / Core | 🟢 Fixed |
 | BUG-009 | `verifyPayment` divides by 100 unconditionally | 🟠 High | API / Payments | 🟢 Fixed |
-| BUG-010 | Order prefix hardcoded to `AUR-` | 🟠 High | API / Orders | 🔴 Open |
+| BUG-010 | Order prefix hardcoded to `AUR-` | 🟠 High | API / Orders | 🟢 Fixed |
 | BUG-011 | `buy_x_get_y` discounts cannot be created | 🟠 High | API / Discounts | 🔴 Open |
 | BUG-012 | Discount validator silently strips model fields | 🟠 High | API / Discounts | 🔴 Open |
-| BUG-013 | Debug route `/stores/test-middleware` in prod | 🟠 High | API / Core | 🔴 Open |
+| BUG-013 | Debug route `/stores/test-middleware` in prod | 🟠 High | API / Core | 🟢 Fixed |
 | BUG-014 | Stripe API version pinned to `2024-06-20` | 🟠 High | API / Payments | 🔴 Open |
 | BUG-015 | `/analytics` and `/aurion-store` are inline stubs | 🟠 High | Dashboard | 🔴 Open |
 | BUG-016 | Second store per user is blocked | 🟠 High | API / Stores | 🔴 Open |
 | BUG-017 | `updateMyStore` has no permission check | 🟠 High | API / Stores | 🔴 Open |
 | BUG-018 | `generateUniqueSlug` check-then-act race | 🟠 High | API / Utils | 🔴 Open |
 | BUG-019 | Refresh token never rotated / not revoked on reset | 🟠 High | API / Auth | 🟡 In progress |
-| BUG-020 | Storefront rate limiters stack unintentionally | 🟡 Medium | API / Core | 🔴 Open |
-| BUG-021 | `populate('activeTheme')` refs a non-existent model | 🟡 Medium | API / Stores | 🔴 Open |
-| BUG-022 | `updateDiscount` mass-assigns `req.body` | 🟡 Medium | API / Discounts | 🔴 Open |
+| BUG-020 | Storefront rate limiters stack unintentionally | 🟡 Medium | API / Core | 🟢 Fixed |
+| BUG-021 | `populate('activeTheme')` refs a non-existent model | 🟡 Medium | API / Stores | 🟢 Fixed |
+| BUG-022 | `updateDiscount` mass-assigns `req.body` | 🟡 Medium | API / Discounts | 🟢 Fixed |
 | BUG-023 | `Inventory` model is never used | 🟡 Medium | API / Inventory | 🔴 Open |
 | BUG-024 | `InventoryLog.inventory` stores a product id | 🟡 Medium | API / Inventory | 🔴 Open |
 | BUG-025 | Subscription `limits` are never enforced | 🟡 Medium | API / Platform | 🔴 Open |
-| BUG-026 | Customer JWTs signed with the merchant secret | 🟡 Medium | API / Auth | 🔴 Open |
+| BUG-026 | Customer JWTs signed with the merchant secret | 🟡 Medium | API / Auth | 🟢 Fixed |
 | BUG-027 | Response envelope unwrapped inconsistently | 🟡 Medium | API / Core | 🔴 Open |
-| BUG-028 | `optionalTenantMiddleware` swallows all errors | 🟡 Medium | API / Core | 🔴 Open |
+| BUG-028 | `optionalTenantMiddleware` swallows all errors | 🟡 Medium | API / Core | 🟢 Fixed |
 | BUG-029 | Dashboard never sends `X-Store-Id` | 🟡 Medium | Dashboard | 🔴 Open |
 | BUG-030 | `setup`-status stores are publicly reachable | 🟡 Medium | Storefront | 🔴 Open |
 | BUG-031 | `/health` does not check the database | 🟡 Medium | API / Core | 🔴 Open |
@@ -148,8 +148,8 @@ If you only do five things, do these:
 | BUG-038 | `api/src/events`, `jobs`, `templates` are empty | 🔵 Low | API / Core | 🔴 Open |
 | BUG-039 | `algoliasearch`, `bull`, `ioredis`, `socket.io` unused deps | 🔵 Low | API / Deps | 🔴 Open |
 | BUG-040 | `passwordChangedAt` not checked on refresh | 🔵 Low | API / Auth | 🟢 Fixed |
-| BUG-041 | Stock never re-checked when the order is created | 🟡 Medium | API / Inventory | 🔴 Open |
-| BUG-042 | A malformed URL env var silently breaks the allow-lists | 🔵 Low | API / Core | 🔴 Open |
+| BUG-041 | Stock never re-checked when the order is created | 🟡 Medium | API / Inventory | 🟢 Fixed |
+| BUG-042 | A malformed URL env var silently breaks the allow-lists | 🔵 Low | API / Core | 🟢 Fixed |
 
 ---
 
@@ -232,8 +232,8 @@ The endpoint returns `401 NO_REFRESH_TOKEN`, the Axios interceptor treats it as 
 6. **`passwordChangedAt` checked on refresh** — see **BUG-040**.
 
 **Verify**
-- `npm run verify:auth-cookie --workspace=apps/api` — **35/35 checks pass** in production mode.
-- `$env:VERIFY_MODE="development"; npm run verify:auth-cookie --workspace=apps/api` — **35/35 checks pass** in development mode (asserts `SameSite=Lax`, no `Secure`). > npm 10 swallows `--mode=development` as its own config flag, so the env var is the reliable way to pick the mode.
+- `npm run verify:auth-cookie --workspace=apps/api` — **41/41 checks pass** in production mode.
+- `$env:VERIFY_MODE="development"; npm run verify:auth-cookie --workspace=apps/api` — **41/41 checks pass** in development mode (asserts `SameSite=Lax`, no `Secure`). > npm 10 swallows `--mode=development` as its own config flag, so the env var is the reliable way to pick the mode.
 - The script proves: the cookie is `SameSite=None; Secure` in production; a cross-site refresh **with** the cookie works; an untrusted origin is refused; a `*.vercel.app` preview is refused **by the CSRF guard** (CORS allows it — this is the case the guard exists for); a refresh with no cookie is refused; a refresh token issued before a password change is refused; logout really clears the cookie with matching attributes.
 - Log in on the deployed dashboard, wait 16 minutes, click around — you must stay logged in.
 - Inspect the `Set-Cookie` header in DevTools → `SameSite=None; Secure`.
@@ -255,8 +255,7 @@ PRODUCTION_ADMIN_URL=<the deployed admin panel URL>
 |---|---|
 | **Severity** | 🔴 Critical |
 | **Area** | API / Orders |
-| **Status** | 🔴 Open |
-| **Location** | `apps/api/src/models/orders/Order.model.js:362-386` |
+| **Status** | 🟢 **Fixed** — 2026-10-22 |
 
 **Impact**
 ```js
@@ -303,8 +302,8 @@ Fire 20 concurrent `POST /orders/create` for the same store → 20 distinct, con
 |---|---|
 | **Severity** | 🔴 Critical |
 | **Area** | API / Payments |
-| **Status** | 🔴 Open |
-| **Location** | `apps/api/src/controllers/payments/stripe.controller.js:145-148` and `apps/api/src/controllers/storefront/sf.order.controller.js:154-156` — **neither file imports the `Discount` model** |
+| **Status** | 🟢 **Fixed** — 2026-10-22 |
+| **Location** | `apps/api/src/controllers/payments/stripe.controller.js` (now uses `calculateTotals` + the discount service)<br>`apps/api/src/services/pricing.service.js` (new)<br>`apps/api/src/services/discount.service.js` (new)<br>`apps/api/src/controllers/storefront/sf.discount.controller.js` (new)<br>`apps/api/src/models/checkout/CheckoutSession.model.js` (discount field)<br>`apps/api/src/models/orders/Order.model.js` (discount field)<br>`apps/storefront/app/[storeSlug]/checkout/page.jsx` (promo code input) |
 
 **Impact**
 The `Discount` model, its full CRUD API, its permissions, its validators and the entire merchant UI (`DiscountList.jsx`, 381 lines) all work. But no customer can ever use a discount code:
@@ -370,8 +369,8 @@ The store pages were scaffolded, then the category pages were planned and never 
 |---|---|
 | **Severity** | 🔴 Critical |
 | **Area** | API / Payments |
-| **Status** | 🔴 Open |
-| **Location** | `apps/api/src/controllers/payments/stripe.controller.js:145-147`<br>`apps/api/src/controllers/storefront/sf.order.controller.js:154-156` |
+| **Status** | 🟢 **Fixed** — 2026-10-22 |
+| **Location** | `apps/api/src/models/tenant/Store.model.js` (new `tax` + `shipping` settings)<br>`apps/api/src/services/pricing.service.js` (new)<br>`apps/api/src/controllers/payments/stripe.controller.js` (now uses `calculateTotals`)<br>`apps/merchant-dashboard/src/pages/settings/GeneralSettings.jsx` (new UI) |
 
 **Impact**
 Both files contain, verbatim:
@@ -417,8 +416,7 @@ Set a store's tax to 16% and flat shipping to 100 KES. Complete a checkout → t
 |---|---|
 | **Severity** | 🟠 High |
 | **Area** | Merchant Dashboard |
-| **Status** | 🔴 Open |
-| **Location** | `apps/merchant-dashboard/src/pages/dashboard/Overview.jsx:45-67` (KPI cards), `99-137` (Recent Orders / Top Products panels) |
+| **Status** | 🟢 **Fixed** — 2026-10-22 |
 
 **Impact**
 The merchant dashboard home page — the first thing every merchant sees after login — renders:
@@ -845,7 +843,7 @@ Item 1 of the original fix is complete: `refreshToken` now applies the same `pas
 | **BUG-038** | `events/`, `jobs/`, `templates/` are empty | `apps/api/src/events/`, `src/jobs/`, `src/templates/` | Three planned directories with no files. They read as "work in progress" but nothing references them. | Populate them (see **GAP-030**, **GAP-031**, **GAP-032**) or delete them. |
 | **BUG-039** | Four dependencies are installed but never imported | `apps/api/package.json` — `algoliasearch`, `bull`, `ioredis`, `socket.io` | Verified: **0 imports** of any of them anywhere in `apps/api/src`. `bull` + `ioredis` were clearly the intended job-queue stack, `algoliasearch` the intended search engine, `socket.io` the intended realtime layer. | Either use them (see **GAP-031**, **GAP-048**) or remove them to cut install size and CVE surface. |
 | **BUG-040** | `passwordChangedAt` not checked on refresh | `controllers/auth/auth.controller.js:159-170` | See **BUG-019** item 2. Listed separately because the fix is a 6-line guard. | **Fixed 2026-10-22** — the refresh path now applies the same `passwordChangedAt` guard as `auth.middleware.js`. |
-| **BUG-042** | A malformed URL env var silently breaks the allow-lists | `config/env.js`; `config/origins.js` | The root `.env` had `CLIENT_URL=http://localhost:5173 && http://localhost:3000` — a shell-style `&&` inside a dotenv value. dotenv does not interpret it, so the variable's value was the literal string `http://localhost:5173 && http://localhost:3000`, which matches **no** origin. Nothing warns about it: the CORS/CSRF allow-list just quietly stops containing the dashboard, and the symptom is a 403 "Origin not allowed" with no obvious cause. Found while fixing **BUG-002**; the local `.env` was corrected, but nothing stops it happening again. | The env values are used as raw strings with no validation. | Support a comma-separated list (`CLIENT_URL=https://a.com,https://b.com`) and split it in `config/origins.js`; warn at startup if a value contains whitespace, `&&`, `,` or `|`. Add a startup check that every configured origin parses as a URL. | Set `CLIENT_URL="https://a.com && https://b.com"` → the API logs a warning at boot. |
+| **BUG-042** | A malformed URL env var silently breaks the allow-lists | `config/env.js`; `config/origins.js` | The root `.env` had `CLIENT_URL=http://localhost:5173 && http://localhost:3000` — a shell-style `&&` inside a dotenv value. dotenv does not interpret it, so the variable's value was the literal string `http://localhost:5173 && http://localhost:3000`, which matches **no** origin. Nothing warns about it: the CORS/CSRF allow-list just quietly stops containing the dashboard, and the symptom is a 403 "Origin not allowed" with no obvious cause. Found while fixing **BUG-002**; the local `.env` was corrected, but nothing stops it happening again. | The env values are used as raw strings with no validation. | **Fixed 2026-10-22** — `config/origins.js` now parses every origin env var: it splits on `,` (and repairs `&&` / `\|\|` / `\|` / `;`), drops anything that is not an absolute http(s) URL, and prints a loud warning naming the variable and the offending value. A comma-separated list is now a supported way to declare several origins. | `npm run verify:auth-cookie --workspace=apps/api` → **41/41**, including 6 new checks that a malformed value is split, reported and dropped, and that a well-formed list produces no warning. |
 
 ---
 
@@ -1107,13 +1105,17 @@ Every bug has a `Verify` line. **Do the verification before closing the item.** 
 
 | Date | ID | Summary | Commit / PR | Verified by |
 |---|---|---|---|---|
-| 2026-10-22 | BUG-002 | Refresh cookie is now `SameSite=None; Secure` in production, with an Origin-based CSRF guard on the cookie-authenticated auth routes | _(uncommitted)_ | `npm run verify:auth-cookie --workspace=apps/api` → **35/35** in production mode **and** 35/35 in development mode |
-| 2026-10-22 | BUG-035 | Logout now clears the refresh cookie with options derived from the set options | _(uncommitted)_ | Same script — asserts the clear header keeps `SameSite`/`Secure`/`Path` and expires in the past |
-| 2026-10-22 | BUG-040 | The refresh path now rejects tokens issued before a password change | _(uncommitted)_ | Same script — refresh after a password change → `401 PASSWORD_CHANGED` |
-| 2026-10-22 | BUG-042 | *New finding* — a malformed URL env var silently breaks the allow-lists (the root `.env` had `CLIENT_URL=… && …`) | _(uncommitted)_ | Local `.env` corrected; the hardening itself is still open |
-| 2026-10-19 | BUG-001 | Added the Stripe webhook — `POST /api/v1/webhooks/stripe` with signature verification, a server-side `CheckoutSession` snapshot, and a shared `checkout.service.js` that both the browser and the webhook use | _(uncommitted)_ | `npm run verify:webhook --workspace=apps/api` → **40/40 checks pass** (signed payloads, replay, cross-store, failure path) |
-| 2026-10-19 | BUG-009 | Moved the Stripe amount conversion into `utils/currency.js`; `verifyPayment` no longer divides by 100 for zero-decimal currencies | _(uncommitted)_ | Same script — `fromStripeAmount()` is now used by `verifyPayment` and the refund handler |
-| 2026-10-19 | BUG-041 | *New finding* — stock is never re-checked when the order is created, so the last item can be sold twice | _(uncommitted)_ | Logged during the BUG-001 work; still open |
+| 2026-10-22 | BUG-007 | Merchant dashboard Overview KPIs now read from `GET /orders/stats/overview` instead of hardcoded zeros | _(uncommitted)_ | `npm run build --workspace=apps/merchant-dashboard` passes; KPIs reflect real revenue/orders/items/avg order value |
+| 2026-10-22 | BUG-003 | Order numbers now come from an atomic counter collection (`OrderCounter`) instead of `countDocuments` — no more duplicate numbers under concurrency | _(uncommitted)_ | 25 concurrent orders → 25 unique, contiguous numbers; a second store starts at AUR-00001 |
+| 2026-10-22 | BUG-006 | Shipping and tax are now per-store settings applied through one shared `pricing.service.js` — the hardcoded `subtotal >= 50 ? 0 : 5` / `subtotal * 0.08` is gone | _(uncommitted)_ | `verify:checkout` → 52/52 (16% VAT + 10 flat shipping produce 56.40; 0% tax produces 0 tax) |
+| 2026-10-22 | BUG-004 | Discounts are now actually applied at checkout — `discount.service.js` validates the code and computes the amount, `pricing.service.js` folds it into the total, the code is previewed via `POST /storefront/:slug/discount/validate`, and the result is recorded on the order and the usage count | _(uncommitted)_ | `verify:checkout` → 52/52 (percentage, fixed-amount, free-shipping, buy-2-get-1, minimum order, expired, cross-store, usage count) |
+| 2026-10-22 | BUG-041 | Inventory is now deducted with a conditional atomic update — an oversell no longer clamps to zero; the order is held (`on_hold`) with a merchant note and the short item marked partial | _(uncommitted)_ | `verify:checkout` → 52/52 (last unit sold twice → second order on hold, stock ends at 0, totalSold 1) |
+| 2026-10-22 | BUG-035 | Logout now clears the refresh cookie with options derived from the set options | `f65a972` | Same script — asserts the clear header keeps `SameSite`/`Secure`/`Path` and expires in the past |
+| 2026-10-22 | BUG-040 | The refresh path now rejects tokens issued before a password change | `f65a972` | Same script — refresh after a password change → `401 PASSWORD_CHANGED` |
+| 2026-10-22 | BUG-042 | *New finding, fixed the same day* — a malformed URL env var silently broke the allow-lists (the root `.env` had `CLIENT_URL=… && …`) | _(uncommitted)_ | `config/origins.js` now parses, validates and reports every origin env var. `npm run verify:auth-cookie --workspace=apps/api` → **41/41** (6 new checks) |
+| 2026-10-19 | BUG-001 | Added the Stripe webhook — `POST /api/v1/webhooks/stripe` with signature verification, a server-side `CheckoutSession` snapshot, and a shared `checkout.service.js` that both the browser and the webhook use | `f65a972` | `npm run verify:webhook --workspace=apps/api` → **40/40 checks pass** (signed payloads, replay, cross-store, failure path) |
+| 2026-10-19 | BUG-009 | Moved the Stripe amount conversion into `utils/currency.js`; `verifyPayment` no longer divides by 100 for zero-decimal currencies | `f65a972` | Same script — `fromStripeAmount()` is now used by `verifyPayment` and the refund handler |
+| 2026-10-19 | BUG-041 | *New finding* — stock is never re-checked when the order is created, so the last item can be sold twice | `f65a972` | Logged during the BUG-001 work; still open |
 
 ### Log entry template
 ```

@@ -163,7 +163,7 @@ export const createStore = asyncHandler(async (req, res) => {
 export const getMyStore = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
-  const store = await Store.findOne({ owner: userId }).populate('activeTheme');
+  const store = await Store.findOne({ owner: userId });
 
   if (!store) {
     throw new ApiError(
@@ -201,7 +201,7 @@ export const updateMyStore = asyncHandler(async (req, res) => {
   const allowedFields = [
     'name', 'description', 'currency', 'currencySymbol', 'language',
     'timezone', 'weightUnit', 'business', 'contact', 'social',
-    'policies', 'seo',
+    'policies', 'seo', 'tax', 'shipping',
   ];
 
   allowedFields.forEach((field) => {

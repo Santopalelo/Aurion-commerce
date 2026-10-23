@@ -69,6 +69,16 @@ const GeneralSettings = () => {
       terms: '',
       privacy: '',
     },
+    tax: {
+      rate: 0.08,
+      inclusive: false,
+      label: 'Tax',
+    },
+    shipping: {
+      freeShippingThreshold: 50,
+      flatRate: 5,
+      freeOverThreshold: true,
+    },
   });
 
   useEffect(() => {
@@ -99,6 +109,16 @@ const GeneralSettings = () => {
           shipping: s.policies?.shipping || '',
           terms: s.policies?.terms || '',
           privacy: s.policies?.privacy || '',
+        },
+        tax: {
+          rate: s.tax?.rate ?? 0.08,
+          inclusive: Boolean(s.tax?.inclusive),
+          label: s.tax?.label || 'Tax',
+        },
+        shipping: {
+          freeShippingThreshold: s.shipping?.freeShippingThreshold ?? 50,
+          flatRate: s.shipping?.flatRate ?? 5,
+          freeOverThreshold: s.shipping?.freeOverThreshold !== false,
         },
       });
     }
@@ -358,6 +378,125 @@ const GeneralSettings = () => {
             className="w-full px-4 py-2.5 rounded-lg border border-gray-300 bg-white text-dark text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all resize-none"
           />
         </div>
+      </Section>
+
+      {/* Tax & shipping */}
+      <Section
+        title="Tax & shipping"
+        description="How tax and shipping are calculated at checkout"
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-dark mb-1.5">
+              Tax label
+            </label>
+            <Input
+              value={form.tax.label}
+              onChange={(e) =>
+                setForm({ ...form, tax: { ...form.tax, label: e.target.value } })
+              }
+              placeholder="Tax"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-dark mb-1.5">
+              Tax rate (as a %)
+            </label>
+            <Input
+              type="number"
+              step="0.1"
+              min="0"
+              max="100"
+              value={Math.round(form.tax.rate * 100 * 10) / 10}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  tax: { ...form.tax, rate: Number(e.target.value) / 100 },
+                })
+              }
+              placeholder="8"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              e.g. 8 for 8%. Set to 0 for no tax.
+            </p>
+          </div>
+        </div>
+
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={form.tax.inclusive}
+            onChange={(e) =>
+              setForm({ ...form, tax: { ...form.tax, inclusive: e.target.checked } })
+            }
+            className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+          />
+          <span className="text-sm text-gray-700">
+            Tax is already included in product prices (no tax added at checkout)
+          </span>
+        </label>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-dark mb-1.5">
+              Flat shipping rate
+            </label>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={form.shipping.flatRate}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  shipping: { ...form.shipping, flatRate: Number(e.target.value) },
+                })
+              }
+              placeholder="5"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-dark mb-1.5">
+              Free shipping above
+            </label>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={form.shipping.freeShippingThreshold}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  shipping: {
+                    ...form.shipping,
+                    freeShippingThreshold: Number(e.target.value),
+                  },
+                })
+              }
+              placeholder="50"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Set to 0 to never offer free shipping.
+            </p>
+          </div>
+        </div>
+
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={form.shipping.freeOverThreshold}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                shipping: { ...form.shipping, freeOverThreshold: e.target.checked },
+              })
+            }
+            className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+          />
+          <span className="text-sm text-gray-700">
+            Offer free shipping above the threshold
+          </span>
+        </label>
       </Section>
     </form>
   );

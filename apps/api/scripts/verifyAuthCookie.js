@@ -336,6 +336,72 @@ console.log('\nTEST 6 — logout clears the cookie');
   check('the clear keeps Path=/ (must match the set)', /Path=\//i.test(cleared || ''), cleared);
 }
 
+// ============================================================
+// TEST 7 — a malformed origin env var is reported, not silently ignored
+// ============================================================
+console.log('\nTEST 7 — malformed origin env vars');
+{
+  const { spawnSync } = await import('child_process');
+  const { pathToFileURL } = await import('url');
+  const originsUrl = pathToFileURL(
+    path.resolve(__dirname, '../src/config/origins.js')
+  ).href;
+
+  const run = (envValue) => {
+    const script = `
+      const { TRUSTED_ORIGINS } = await import(${JSON.stringify(originsUrl)});
+      console.log(JSON.stringify(TRUSTED_ORIGINS));
+    `;
+    const result = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
+      env: { ...process.env, CLIENT_URL: envValue, NODE_ENV: 'production' },
+      encoding: 'utf8',
+    });
+    return { stdout: result.stdout || '', stderr: result.stderr || '' };
+  };
+
+  // The exact mistake that broke the allow-list: a shell-style "&&" in a
+  // dotenv value. dotenv does not interpret it, so the value used to become
+  // one long string that matched no origin at all.
+  const broken = run('http://localhost:5173 && http://localhost:3000');
+  const brokenOrigins = JSON.parse(broken.stdout.trim().split('\n').pop() || '[]');
+
+  check(
+    'a "&&"-joined value is split into separate origins',
+    brokenOrigins.includes('http://localhost:5173') &&
+      brokenOrigins.includes('http://localhost:3000'),
+    broken.stdout
+  );
+  check(
+    'a "&&"-joined value is reported at startup',
+    /CLIENT_URL/.test(broken.stderr) && /not a valid origin|separated by/i.test(broken.stderr),
+    broken.stderr
+  );
+
+  const garbage = run('not-a-url');
+  const garbageOrigins = JSON.parse(garbage.stdout.trim().split('\n').pop() || '[]');
+  check(
+    'a value that is not a URL is dropped from the allow-list',
+    !garbageOrigins.includes('not-a-url'),
+    garbage.stdout
+  );
+  check(
+    'a value that is not a URL is reported at startup',
+    /CLIENT_URL/.test(garbage.stderr) && /not a valid origin/i.test(garbage.stderr),
+    garbage.stderr
+  );
+
+  // A well-formed comma-separated list must work, with no warning.
+  const good = run('https://a.example.com,https://b.example.com');
+  const goodOrigins = JSON.parse(good.stdout.trim().split('\n').pop() || '[]');
+  check(
+    'a comma-separated list is accepted',
+    goodOrigins.includes('https://a.example.com') &&
+      goodOrigins.includes('https://b.example.com'),
+    good.stdout
+  );
+  check('a comma-separated list produces no warning', good.stderr.trim() === '', good.stderr);
+}
+
 // ------------------------------------------------------------
 // Cleanup
 // ------------------------------------------------------------

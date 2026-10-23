@@ -167,7 +167,10 @@ export const optionalTenantMiddleware = asyncHandler(async (req, res, next) => {
     req.userRole = role;
     req.storeAccess = storeAccess;
   } catch (error) {
-    // Silently fail — just continue without store context
+    // Only swallow "not found" / expected errors; re-throw unexpected ones
+    if (error.name !== 'CastError' && error.name !== 'NotFoundError') {
+      throw error;
+    }
   }
 
   next();

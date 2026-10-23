@@ -22,20 +22,121 @@ import { env } from './env.js';
  */
 
 /**
+ * The env vars that hold origins, and what each one is for.
+ */
+const ORIGIN_ENV_KEYS = [
+  ['PRODUCTION_DASHBOARD_URL', 'merchant dashboard (production)'],
+  ['PRODUCTION_ADMIN_URL', 'admin panel (production)'],
+  ['PRODUCTION_STOREFRONT_URL', 'storefront (production)'],
+  ['CLIENT_URL', 'merchant dashboard (development)'],
+  ['STOREFRONT_URL', 'storefront (development)'],
+  ['ADMIN_URL', 'admin panel (development)'],
+];
+
+/**
+ * Origins that are always trusted in development, so a fresh checkout works
+ * without extra configuration. The Vite apps use fixed ports.
+ */
+const DEVELOPMENT_ORIGINS = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:3000',
+];
+
+/**
+ * Split a raw env value into individual origins.
+ *
+ * A comma is the documented separator. `&&`, `||` and `;` are accepted as
+ * well, because those are the separators people actually paste — e.g.
+ * `CLIENT_URL=http://localhost:5173 && http://localhost:3000`. dotenv does
+ * not interpret them, so the value would otherwise become one long string
+ * that matches no origin at all, and the only symptom is a bare
+ * "403 Origin not allowed" with no obvious cause.
+ *
+ * @param {string|undefined} raw
+ * @returns {string[]}
+ */
+const splitOrigins = (raw) =>
+  String(raw)
+    .split(/,|&&|\|\||\||;/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+/**
+ * Is this a usable origin? An absolute http(s) URL with a host.
+ *
+ * @param {string} value
+ * @returns {boolean}
+ */
+const isValidOrigin = (value) => {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+    return Boolean(url.hostname);
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Read every origin env var, split it into individual origins, drop the
+ * invalid ones and warn about anything suspicious.
+ *
+ * @returns {string[]}
+ */
+const readOrigins = () => {
+  const origins = [];
+  const seen = new Set();
+
+  const add = (origin) => {
+    if (seen.has(origin)) return;
+    seen.add(origin);
+    origins.push(origin);
+  };
+
+  if (env.isDevelopment) DEVELOPMENT_ORIGINS.forEach(add);
+
+  for (const [key, label] of ORIGIN_ENV_KEYS) {
+    const raw = env[key];
+    if (!raw) continue;
+
+    const parts = splitOrigins(raw);
+    const invalid = parts.filter((part) => !isValidOrigin(part));
+
+    if (invalid.length > 0) {
+      console.warn(
+        `⚠️  ${key} (${label}) is not a valid origin and was ignored: ${invalid
+          .map((part) => `"${part}"`)
+          .join(', ')}`
+      );
+      console.warn(
+        '   Expected a single URL, or several separated by commas:\n' +
+          '     CLIENT_URL=https://app.example.com,https://other.example.com'
+      );
+    }
+
+    for (const part of parts) {
+      if (!isValidOrigin(part)) continue;
+      if (seen.has(part)) continue;
+      seen.add(part);
+      origins.push(part);
+    }
+
+    if (parts.length > 1 && !raw.includes(',')) {
+      console.warn(
+        `⚠️  ${key} holds ${parts.length} origins separated by something other than a comma. ` +
+          'Use commas — "&", "|" and ";" are accepted but not recommended.'
+      );
+    }
+  }
+
+  return origins;
+};
+
+/**
  * Origins that may send credentialed, cookie-authenticated requests.
  */
-export const TRUSTED_ORIGINS = [
-  // Production
-  env.PRODUCTION_DASHBOARD_URL, // merchant dashboard (Vercel)
-  env.PRODUCTION_ADMIN_URL, // platform admin panel (Vercel)
-  env.PRODUCTION_STOREFRONT_URL, // storefront (Vercel)
-  // Development / staging
-  env.CLIENT_URL, // merchant dashboard
-  env.STOREFRONT_URL, // storefront
-  'http://localhost:5173', // merchant dashboard (vite dev)
-  'http://localhost:5174', // admin panel (vite dev)
-  'http://localhost:3000', // storefront (next dev)
-].filter(Boolean);
+export const TRUSTED_ORIGINS = readOrigins();
 
 /**
  * Is this origin allowed to make CORS requests at all?

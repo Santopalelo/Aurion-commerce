@@ -35,6 +35,15 @@ const StoreSchema = new mongoose.Schema(
       ],
     },
 
+    // 3-letter (or up to 5) order-number prefix, derived from the store slug.
+    // Used as `${orderPrefix}-${sequence}` for order numbers.
+    orderPrefix: {
+      type: String,
+      uppercase: true,
+      trim: true,
+      maxlength: 5,
+    },
+
     description: {
       type: String,
       maxlength: [500, 'Description cannot exceed 500 characters'],
@@ -138,6 +147,39 @@ const StoreSchema = new mongoose.Schema(
     },
 
     // ============================================
+    // TAX
+    // ============================================
+    // Per-store tax. The rate is a fraction (0.16 = 16%), not a percentage,
+    // so it can be multiplied straight into the amount.
+    //
+    // The default of 0.08 reproduces the flat 8% that used to be hardcoded
+    // in the checkout controller, so no store's pricing changes on deploy.
+    // Every store SHOULD set its own rate — 8% is a US state sales tax, not
+    // a world default.
+    tax: {
+      rate: { type: Number, default: 0.08, min: 0, max: 1 },
+      // When true the price already includes the tax, so it is not added on
+      // top. (European display prices, for example.)
+      inclusive: { type: Boolean, default: false },
+      label: { type: String, default: 'Tax' },
+    },
+
+    // ============================================
+    // SHIPPING
+    // ============================================
+    // Flat-rate shipping for now. Multiple rates and zones come later.
+    shipping: {
+      // Orders at or above this subtotal ship free (0 = never free).
+      freeShippingThreshold: { type: Number, default: 50, min: 0 },
+      // The flat amount charged below the threshold. Set it to 0 for
+      // "always free shipping".
+      flatRate: { type: Number, default: 5, min: 0 },
+      // Whether the free-shipping threshold is applied at all. With it off,
+      // every order pays the flat rate.
+      freeOverThreshold: { type: Boolean, default: true },
+    },
+
+    // ============================================
     // SUBSCRIPTION PLAN
     // ============================================
     plan: {
@@ -161,7 +203,6 @@ const StoreSchema = new mongoose.Schema(
     // ============================================
     activeTheme: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Theme',
     },
     // Custom theme settings (colors, fonts, layout)
     themeSettings: {
@@ -249,6 +290,16 @@ StoreSchema.virtual('storefrontUrl').get(function () {
 // Include virtuals when converting to JSON
 StoreSchema.set('toJSON', { virtuals: true });
 StoreSchema.set('toObject', { virtuals: true });
+
+// Derive orderPrefix from slug if not explicitly set
+StoreSchema.pre('validate', function (next) {
+  if (!this.orderPrefix && this.slug) {
+    // Take first 3 letters of the first slug segment, uppercased
+    const segment = this.slug.split('-')[0] || this.slug;
+    this.orderPrefix = segment.slice(0, 3).toUpperCase() || 'STR';
+  }
+  next();
+});
 
 const Store = mongoose.model('Store', StoreSchema);
 

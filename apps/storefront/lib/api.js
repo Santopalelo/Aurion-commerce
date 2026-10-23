@@ -67,6 +67,20 @@ export const storefrontApi = {
     return data.data;
   },
 
+  /**
+   * Check a promo code and preview the new total.
+   *
+   * This is only a preview — the amount that is actually charged is
+   * recomputed on the server when the payment intent is created.
+   */
+  validateDiscount: async (storeSlug, payload) => {
+    const { data } = await api.post(
+      `/storefront/${storeSlug}/discount/validate`,
+      payload
+    );
+    return data.data;
+  },
+
   // ============================================
   // ORDERS
   // ============================================

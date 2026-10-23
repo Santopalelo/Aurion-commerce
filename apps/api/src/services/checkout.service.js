@@ -8,6 +8,7 @@ import CheckoutSession from '../models/checkout/CheckoutSession.model.js';
 import Store from '../models/tenant/Store.model.js';
 import ApiError from '../utils/ApiError.js';
 import { toStripeAmount } from '../utils/currency.js';
+import { recordDiscountUsage } from './discount.service.js';
 
 /**
  * Checkout Service
@@ -129,6 +130,31 @@ const upsertCustomer = async (checkoutSession, store, dbSession) => {
 
 /**
  * Deduct stock and write the inventory audit trail.
+ *
+ * WHY THIS IS AN ATOMIC CONDITIONAL UPDATE
+ * -----------------------------------------
+ * The old code read the quantity, subtracted, and clamped at zero:
+ *
+ *     const quantityBefore = product.inventoryQuantity;
+ *     const newQuantity = Math.max(0, quantityBefore - item.quantity);
+ *
+ * Two problems. It is a read-modify-write, so two concurrent orders
+ * overwrite each other. And `Math.max(0, …)` silently swallows the
+ * shortfall — the last item can be sold twice and the ledger still says the
+ * stock is zero, as if nothing was oversold.
+ *
+ * The update below only fires when there is genuinely enough stock:
+ *
+ *     Product.updateOne(
+ *       { _id, inventoryQuantity: { $gte: quantity } },
+ *       { $inc: { inventoryQuantity: -quantity, totalSold: quantity } }
+ *     )
+ *
+ * If `matchedCount` is 0 the stock was gone. The money has already been
+ * taken, so the order is still created — but it is put on hold and the
+ * shortfall is recorded, instead of being quietly swallowed.
+ *
+ * @returns {Promise<{ shortages: Array<{ product: string, title: string, requested: number, available: number }> }>}
  */
 const deductInventory = async (checkoutSession, order, dbSession) => {
   const productIds = checkoutSession.items.map((item) => item.product);
@@ -137,16 +163,74 @@ const deductInventory = async (checkoutSession, order, dbSession) => {
     store: order.store,
   }).session(dbSession);
 
+  const shortages = [];
+
   for (const item of checkoutSession.items) {
     const product = products.find((p) => p._id.toString() === item.product.toString());
     if (!product || !product.trackInventory) continue;
 
     const quantityBefore = product.inventoryQuantity;
-    const newQuantity = Math.max(0, quantityBefore - item.quantity);
 
-    product.inventoryQuantity = newQuantity;
-    product.totalSold = (product.totalSold || 0) + item.quantity;
-    await product.save({ session: dbSession });
+    const result = await Product.updateOne(
+      {
+        _id: product._id,
+        inventoryQuantity: { $gte: item.quantity },
+      },
+      {
+        $inc: {
+          inventoryQuantity: -item.quantity,
+          totalSold: item.quantity,
+        },
+      },
+      { session: dbSession }
+    );
+
+    if (result.matchedCount === 0) {
+      // Not enough stock left. The payment already went through, so the
+      // order stands — but the merchant has to know.
+      const available = await Product.findById(product._id)
+        .session(dbSession)
+        .select('inventoryQuantity');
+
+      shortages.push({
+        product: product._id.toString(),
+        title: item.title,
+        requested: item.quantity,
+        available: available?.inventoryQuantity ?? 0,
+      });
+
+      // Take whatever IS left, and record the true movement.
+      const taken = Math.min(available?.inventoryQuantity ?? 0, item.quantity);
+      if (taken > 0) {
+        await Product.updateOne(
+          { _id: product._id },
+          {
+            $inc: {
+              inventoryQuantity: -taken,
+              totalSold: taken,
+            },
+          },
+          { session: dbSession }
+        );
+      }
+
+      const inventoryLog = new InventoryLog({
+        store: order.store,
+        inventory: product._id, // Using product ID since we don't have separate inventory docs
+        product: product._id,
+        type: 'order_paid',
+        quantityChange: -taken,
+        quantityBefore,
+        quantityAfter: Math.max(0, quantityBefore - taken),
+        referenceType: 'order',
+        referenceId: order._id,
+        referenceModel: 'Order',
+        note: `Order ${order.orderNumber} — oversold: ${item.quantity} ordered, ${taken} available`,
+      });
+      await inventoryLog.save({ session: dbSession });
+
+      continue;
+    }
 
     const inventoryLog = new InventoryLog({
       store: order.store,
@@ -155,7 +239,7 @@ const deductInventory = async (checkoutSession, order, dbSession) => {
       type: 'order_paid',
       quantityChange: -item.quantity,
       quantityBefore,
-      quantityAfter: newQuantity,
+      quantityAfter: Math.max(0, quantityBefore - item.quantity),
       referenceType: 'order',
       referenceId: order._id,
       referenceModel: 'Order',
@@ -163,6 +247,8 @@ const deductInventory = async (checkoutSession, order, dbSession) => {
     });
     await inventoryLog.save({ session: dbSession });
   }
+
+  return { shortages };
 };
 
 /**
@@ -301,6 +387,17 @@ export const finalizeCheckout = async ({
         total: checkoutSession.pricing.total,
         currency,
       },
+      // The discount that was applied, copied from the server-side session.
+      // The amount is the one we calculated, never one sent by the browser.
+      discount: checkoutSession.discount?.code
+        ? {
+            code: checkoutSession.discount.code,
+            discountId: checkoutSession.discount.discountId,
+            type: checkoutSession.discount.type,
+            value: checkoutSession.discount.value,
+            amountSaved: checkoutSession.discount.amountSaved,
+          }
+        : undefined,
       shippingAddress: {
         firstName: checkoutSession.shippingAddress.firstName,
         lastName: checkoutSession.shippingAddress.lastName,
@@ -354,6 +451,42 @@ export const finalizeCheckout = async ({
     await order.save({ session: dbSession });
 
     // ---------------------------------------------------------------
+    // Inventory
+    //
+    // Runs after the order exists because the audit trail references the
+    // order number. If the stock turned out to be gone, the order is put on
+    // hold rather than the shortfall being swallowed — the money has already
+    // been taken, so the order stands, but the merchant has to know.
+    // ---------------------------------------------------------------
+    const { shortages } = await deductInventory(checkoutSession, order, dbSession);
+
+    if (shortages.length > 0) {
+      const summary = shortages
+        .map((s) => `${s.title}: ${s.requested} ordered, ${s.available} available`)
+        .join('; ');
+
+      for (const shortage of shortages) {
+        const item = order.items.find(
+          (i) => i.product.toString() === shortage.product
+        );
+        if (item) item.fulfillmentStatus = 'partial';
+      }
+
+      order.status = 'on_hold';
+      order.addStatusChange(
+        'status',
+        'confirmed',
+        'on_hold',
+        `Insufficient stock at order time — ${summary}`
+      );
+      order.merchantNotes.push({
+        note: `Oversold at checkout — ${summary}. The customer has already paid, so this order was held for review instead of being dropped.`,
+      });
+
+      await order.save({ session: dbSession });
+    }
+
+    // ---------------------------------------------------------------
     // Payment record
     // ---------------------------------------------------------------
     const payment = new Payment({
@@ -381,9 +514,14 @@ export const finalizeCheckout = async ({
     await payment.save({ session: dbSession });
 
     // ---------------------------------------------------------------
-    // Inventory
+    // Discount usage
+    //
+    // Counted here — after the order exists — so a payment that fails never
+    // burns one of the merchant's uses.
     // ---------------------------------------------------------------
-    await deductInventory(checkoutSession, order, dbSession);
+    if (checkoutSession.discount?.discountId) {
+      await recordDiscountUsage(checkoutSession.discount.discountId);
+    }
 
     // ---------------------------------------------------------------
     // Link the session to the order

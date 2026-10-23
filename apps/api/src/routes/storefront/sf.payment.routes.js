@@ -1,6 +1,7 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { storefrontTenant } from '../../middleware/storefront.middleware.js';
+import { env } from '../../config/env.js';
 import {
   createPaymentIntent,
   verifyPayment,
@@ -10,8 +11,8 @@ const router = express.Router();
 
 // Aggressive rate limiting on payment endpoints
 const paymentLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 10, // 10 payment attempts per minute per IP
+  windowMs: env.RATE_LIMIT_PAYMENT_WINDOW_MS,
+  max: env.RATE_LIMIT_PAYMENT_MAX,
   message: {
     success: false,
     message: 'Too many payment attempts. Please wait a moment.',
