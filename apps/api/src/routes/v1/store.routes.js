@@ -6,6 +6,8 @@ import {
   checkSlugAvailability,
 } from '../../controllers/merchant/store.controller.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
+import { tenantMiddleware } from '../../middleware/tenant.middleware.js';
+import { requirePermission } from '../../middleware/rbac.middleware.js';
 import validate from '../../middleware/validate.middleware.js';
 import {
   createStoreSchema,
@@ -32,6 +34,13 @@ router.post('/', authMiddleware, validate(createStoreSchema), createStore);
 router.get('/my-store', authMiddleware, getMyStore);
 
 // PUT /api/v1/stores/my-store — Update current user's store
-router.put('/my-store', authMiddleware, validate(updateStoreSchema), updateMyStore);
+router.put(
+  '/my-store',
+  authMiddleware,
+  tenantMiddleware,
+  requirePermission('store:manage'),
+  validate(updateStoreSchema),
+  updateMyStore
+);
 
 export default router;

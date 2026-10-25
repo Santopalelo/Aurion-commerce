@@ -32,11 +32,12 @@ export const generateAccessToken = (userId, storeId = null) => {
  * @param {string} userId - The user's MongoDB ID
  * @returns {string} JWT token
  */
-export const generateRefreshToken = (userId) => {
+export const generateRefreshToken = (userId, tokenVersion = 0) => {
   return jwt.sign(
     {
       userId,
       type: 'refresh',
+      tv: tokenVersion,
     },
     env.JWT_REFRESH_SECRET,
     {
@@ -45,17 +46,10 @@ export const generateRefreshToken = (userId) => {
   );
 };
 
-/**
- * Generate both tokens at once
- *
- * @param {string} userId
- * @param {string} [storeId]
- * @returns {{ accessToken: string, refreshToken: string }}
- */
-export const generateAuthTokens = (userId, storeId = null) => {
+export const generateAuthTokens = (userId, storeId = null, tokenVersion = 0) => {
   return {
     accessToken: generateAccessToken(userId, storeId),
-    refreshToken: generateRefreshToken(userId),
+    refreshToken: generateRefreshToken(userId, tokenVersion),
   };
 };
 

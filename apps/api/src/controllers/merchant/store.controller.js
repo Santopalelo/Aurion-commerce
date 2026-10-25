@@ -20,13 +20,12 @@ export const createStore = asyncHandler(async (req, res) => {
   // ============================================
   // Check if user already has a store
   // ============================================
-  const existingStore = await Store.findOne({ owner: userId });
-  if (existingStore) {
+  const ownedCount = await Store.countDocuments({ owner: userId });
+  if (ownedCount >= 1) {
     throw new ApiError(
       409,
       'You already have a store. You can only own one store on this plan.',
-      'STORE_EXISTS',
-      { storeId: existingStore._id, storeSlug: existingStore.slug }
+      'STORE_EXISTS'
     );
   }
 
@@ -190,9 +189,8 @@ export const getMyStore = asyncHandler(async (req, res) => {
  * @access  Private (owner only)
  */
 export const updateMyStore = asyncHandler(async (req, res) => {
-  const userId = req.user._id;
+  const store = req.store;
 
-  const store = await Store.findOne({ owner: userId });
   if (!store) {
     throw new ApiError(404, 'Store not found', 'NO_STORE');
   }

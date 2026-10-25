@@ -41,7 +41,11 @@ export const register = asyncHandler(async (req, res) => {
   });
 
   // Generate tokens
-  const { accessToken, refreshToken } = generateAuthTokens(user._id);
+  const { accessToken, refreshToken } = generateAuthTokens(
+    user._id,
+    null,
+    user.tokenVersion || 0
+  );
 
   // Set refresh token in httpOnly cookie
   res.cookie('refreshToken', refreshToken, refreshTokenCookieOptions);
@@ -106,7 +110,11 @@ export const login = asyncHandler(async (req, res) => {
     );
   }
 
-  const { accessToken, refreshToken } = generateAuthTokens(user._id);
+  const { accessToken, refreshToken } = generateAuthTokens(
+    user._id,
+    null,
+    user.tokenVersion || 0
+  );
 
   res.cookie('refreshToken', refreshToken, refreshTokenCookieOptions);
 
@@ -162,6 +170,11 @@ export const refreshToken = asyncHandler(async (req, res) => {
     throw new ApiError(401, 'User account is not accessible', 'USER_INACCESSIBLE');
   }
 
+  // Token rotation: invalidate if token version doesn't match
+  if ((decoded.tv || 0) !== (user.tokenVersion || 0)) {
+    throw new ApiError(401, 'Refresh token has been revoked', 'TOKEN_REVOKED');
+  }
+
   // ============================================
   // Revoke refresh tokens issued BEFORE a password change
   // ============================================
@@ -183,13 +196,11 @@ export const refreshToken = asyncHandler(async (req, res) => {
     }
   }
 
-  const newAccessToken = generateAccessToken(user._id);
+  // Rotate refresh token on every use
+  const newRefreshToken = generateRefreshToken(user._id, user.tokenVersion || 0);
+  res.cookie('refreshToken', newRefreshToken, refreshTokenCookieOptions);
 
-  return res.status(200).json(
-    ApiResponse.success('Token refreshed successfully', {
-      accessToken: newAccessToken,
-    })
-  );
+  const newAccessToken = generateAccessToken(user._id);
 });
 
 /**
@@ -319,6 +330,7 @@ export const resetPassword = asyncHandler(async (req, res) => {
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
   user.passwordChangedAt = new Date();
+  user.tokenVersion = (user.tokenVersion || 0) + 1;
   await user.save();
 
   return res.status(200).json(

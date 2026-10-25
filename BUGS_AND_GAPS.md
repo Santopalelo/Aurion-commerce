@@ -112,41 +112,41 @@ If you only do five things, do these:
 | BUG-002 | `sameSite:'strict'` cookie breaks cross-domain refresh | 🔴 Critical | API / Auth | 🟢 Fixed |
 | BUG-003 | Order-number generation races | 🔴 Critical | API / Orders | 🟢 Fixed |
 | BUG-004 | Discounts never applied at checkout | 🔴 Critical | API / Payments | 🟢 Fixed |
-| BUG-005 | Storefront category pages are empty dirs | 🔴 Critical | Storefront | 🔴 Open |
+| BUG-005 | Storefront category pages are empty dirs | 🔴 Critical | Storefront | 🟢 Fixed |
 | BUG-006 | Shipping & tax hardcoded in two files | 🔴 Critical | API / Payments | 🟢 Fixed |
 | BUG-007 | Dashboard Overview shows hardcoded zeros | 🟠 High | Dashboard | 🟢 Fixed |
 | BUG-008 | `err.keyValue[0]` unguarded in error handler | 🟠 High | API / Core | 🟢 Fixed |
 | BUG-009 | `verifyPayment` divides by 100 unconditionally | 🟠 High | API / Payments | 🟢 Fixed |
 | BUG-010 | Order prefix hardcoded to `AUR-` | 🟠 High | API / Orders | 🟢 Fixed |
-| BUG-011 | `buy_x_get_y` discounts cannot be created | 🟠 High | API / Discounts | 🔴 Open |
-| BUG-012 | Discount validator silently strips model fields | 🟠 High | API / Discounts | 🔴 Open |
+| BUG-011 | `buy_x_get_y` discounts cannot be created | 🟠 High | API / Discounts | 🟢 Fixed |
+| BUG-012 | Discount validator silently strips model fields | 🟠 High | API / Discounts | 🟢 Fixed `|
 | BUG-013 | Debug route `/stores/test-middleware` in prod | 🟠 High | API / Core | 🟢 Fixed |
-| BUG-014 | Stripe API version pinned to `2024-06-20` | 🟠 High | API / Payments | 🔴 Open |
-| BUG-015 | `/analytics` and `/aurion-store` are inline stubs | 🟠 High | Dashboard | 🔴 Open |
-| BUG-016 | Second store per user is blocked | 🟠 High | API / Stores | 🔴 Open |
-| BUG-017 | `updateMyStore` has no permission check | 🟠 High | API / Stores | 🔴 Open |
-| BUG-018 | `generateUniqueSlug` check-then-act race | 🟠 High | API / Utils | 🔴 Open |
-| BUG-019 | Refresh token never rotated / not revoked on reset | 🟠 High | API / Auth | 🟡 In progress |
+| BUG-014 | Stripe API version pinned to `2024-06-20` | 🟠 High | API / Payments | 🟢 Fixed |
+| BUG-015 | `/analytics` and `/aurion-store` are inline stubs | 🟠 High | Dashboard | 🟢 Fixed |
+| BUG-016 | Second store per user is blocked | 🟠 High | API / Stores | 🟢 Fixed |
+| BUG-017 | `updateMyStore` has no permission check | 🟠 High | API / Stores | 🟢 Fixed |
+| BUG-018 | `generateUniqueSlug` check-then-act race | 🟠 High | API / Utils | 🟢 Fixed |
+| BUG-019 | Refresh token never rotated / not revoked on reset | 🟠 High | API / Auth | 🟢 Fixed |
 | BUG-020 | Storefront rate limiters stack unintentionally | 🟡 Medium | API / Core | 🟢 Fixed |
 | BUG-021 | `populate('activeTheme')` refs a non-existent model | 🟡 Medium | API / Stores | 🟢 Fixed |
 | BUG-022 | `updateDiscount` mass-assigns `req.body` | 🟡 Medium | API / Discounts | 🟢 Fixed |
-| BUG-023 | `Inventory` model is never used | 🟡 Medium | API / Inventory | 🔴 Open |
-| BUG-024 | `InventoryLog.inventory` stores a product id | 🟡 Medium | API / Inventory | 🔴 Open |
-| BUG-025 | Subscription `limits` are never enforced | 🟡 Medium | API / Platform | 🔴 Open |
+| BUG-023 | `Inventory` model is never used | 🟡 Medium | API / Inventory | 🟢 Fixed |
+| BUG-024 | `InventoryLog.inventory` stores a product id | 🟡 Medium | API / Inventory | 🟢 Fixed |
+| BUG-025 | Subscription `limits` are never enforced | 🟡 Medium | API / Platform | 🟢 Fixed |
 | BUG-026 | Customer JWTs signed with the merchant secret | 🟡 Medium | API / Auth | 🟢 Fixed |
-| BUG-027 | Response envelope unwrapped inconsistently | 🟡 Medium | API / Core | 🔴 Open |
+| BUG-027 | Response envelope unwrapped inconsistently | 🟡 Medium | API / Core | 🟢 Fixed |
 | BUG-028 | `optionalTenantMiddleware` swallows all errors | 🟡 Medium | API / Core | 🟢 Fixed |
-| BUG-029 | Dashboard never sends `X-Store-Id` | 🟡 Medium | Dashboard | 🔴 Open |
-| BUG-030 | `setup`-status stores are publicly reachable | 🟡 Medium | Storefront | 🔴 Open |
-| BUG-031 | `/health` does not check the database | 🟡 Medium | API / Core | 🔴 Open |
-| BUG-032 | No request IDs, no prod logging | 🟡 Medium | API / Core | 🔴 Open |
-| BUG-033 | `next/image` never used — no image optimization | 🔵 Low | Storefront | 🔴 Open |
-| BUG-034 | `CORS` allows every `*.vercel.app` origin | 🔵 Low | API / Core | 🔴 Open |
+| BUG-029 | Dashboard never sends `X-Store-Id` | 🟡 Medium | Dashboard | 🟢 Fixed |
+| BUG-030 | `setup`-status stores are publicly reachable | 🟡 Medium | Storefront | 🟢 Fixed |
+| BUG-031 | `/health` does not check the database | 🟡 Medium | API / Core | 🟢 Fixed |
+| BUG-032 | No request IDs, no prod logging | 🟡 Medium | API / Core | 🟢 Fixed |
+| BUG-033 | `next/image` never used — no image optimization | 🔵 Low | Storefront | 🟢 Fixed |
+| BUG-034 | `CORS` allows every `*.vercel.app` origin | 🔵 Low | API / Core | 🟢 Fixed |
 | BUG-035 | `refreshToken` cookie options duplicated in `logout` | 🔵 Low | API / Auth | 🟢 Fixed |
-| BUG-036 | `createStore` error message says "on this plan" | 🔵 Low | API / Stores | 🔴 Open |
-| BUG-037 | `checkSlugAvailability` reserved list is hardcoded | 🔵 Low | API / Stores | 🔴 Open |
-| BUG-038 | `api/src/events`, `jobs`, `templates` are empty | 🔵 Low | API / Core | 🔴 Open |
-| BUG-039 | `algoliasearch`, `bull`, `ioredis`, `socket.io` unused deps | 🔵 Low | API / Deps | 🔴 Open |
+| BUG-036 | `createStore` error message says "on this plan" | 🔵 Low | API / Stores | 🟢 Fixed |
+| BUG-037 | `checkSlugAvailability` reserved list is hardcoded | 🔵 Low | API / Stores | 🟢 Fixed |
+| BUG-038 | `api/src/events`, `jobs`, `templates` are empty | 🔵 Low | API / Core | 🟢 Fixed |
+| BUG-039 | `algoliasearch`, `bull`, `ioredis`, `socket.io` unused deps | 🔵 Low | API / Deps | 🟢 Fixed |
 | BUG-040 | `passwordChangedAt` not checked on refresh | 🔵 Low | API / Auth | 🟢 Fixed |
 | BUG-041 | Stock never re-checked when the order is created | 🟡 Medium | API / Inventory | 🟢 Fixed |
 | BUG-042 | A malformed URL env var silently breaks the allow-lists | 🔵 Low | API / Core | 🟢 Fixed |

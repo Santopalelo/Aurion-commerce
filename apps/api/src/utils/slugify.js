@@ -21,6 +21,7 @@ export const generateSlug = (text) => {
 /**
  * Generate a unique slug by checking against a model
  * If the slug exists, appends -2, -3, etc until unique
+ * Falls back to timestamp-based suffix to avoid infinite loops on races.
  *
  * @param {string} text - The text to slugify
  * @param {Model} Model - Mongoose model to check against

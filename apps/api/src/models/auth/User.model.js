@@ -144,8 +144,9 @@ const UserSchema = new mongoose.Schema(
     ],
 
     // ============================================
-    // USER PREFERENCES
+    // REFRESH TOKEN SECURITY
     // ============================================
+    tokenVersion: { type: Number, default: 0 },
     preferences: {
       notifications: {
         email: { type: Boolean, default: true },
