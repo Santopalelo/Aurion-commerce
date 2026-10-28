@@ -71,6 +71,7 @@ export default function Footer({ store }) {
                   </a>
                 </li>
               )}
+              <li><Link href={`/${store.slug}/track-order`} className="hover:text-primary-600">Track Order</Link></li>
               <li><a href="#" className="hover:text-primary-600">Shipping</a></li>
               <li><a href="#" className="hover:text-primary-600">Returns</a></li>
             </ul>

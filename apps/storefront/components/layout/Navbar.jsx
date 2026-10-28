@@ -66,6 +66,18 @@ export default function Navbar({ store }) {
             >
               Products
             </Link>
+            <Link
+              href={`${baseUrl}/categories`}
+              className="text-sm text-gray-700 hover:text-primary-600 font-medium transition-colors"
+            >
+              Categories
+            </Link>
+            <Link
+              href={`${baseUrl}/track-order`}
+              className="text-sm text-gray-700 hover:text-primary-600 font-medium transition-colors"
+            >
+              Track Order
+            </Link>
           </nav>
 
           {/* Right Actions */}
@@ -113,6 +125,20 @@ export default function Navbar({ store }) {
               className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg"
             >
               Products
+            </Link>
+            <Link
+              href={`${baseUrl}/categories`}
+              onClick={() => setMenuOpen(false)}
+              className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg"
+            >
+              Categories
+            </Link>
+            <Link
+              href={`${baseUrl}/track-order`}
+              onClick={() => setMenuOpen(false)}
+              className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg"
+            >
+              Track Order
             </Link>
             <Link
               href={`${baseUrl}/search`}
