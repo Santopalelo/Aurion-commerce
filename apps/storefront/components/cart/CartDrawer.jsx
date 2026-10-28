@@ -49,7 +49,7 @@ export default function CartDrawer({ storeSlug, currencySymbol = '$' }) {
 
       {/* Drawer */}
       <aside
-        className={`fixed top-0 right-0 z-[60] h-screen w-full sm:w-[420px] bg-white shadow-xl flex flex-col transition-transform duration-300 ease-out ${
+        className={`fixed top-0 right-0 z-[60] h-[100dvh] w-full sm:w-[420px] bg-white shadow-xl flex flex-col transition-transform duration-300 ease-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -76,7 +76,7 @@ export default function CartDrawer({ storeSlug, currencySymbol = '$' }) {
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto pb-safe">
           {cart.length === 0 ? (
             <EmptyCart
               storeSlug={storeSlug}
@@ -100,7 +100,7 @@ export default function CartDrawer({ storeSlug, currencySymbol = '$' }) {
 
         {/* Footer */}
         {cart.length > 0 && (
-          <div className="border-t border-gray-200 px-5 py-4 space-y-3 flex-shrink-0">
+          <div className="border-t border-gray-200 px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] space-y-3 flex-shrink-0">
             {savings > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-success font-medium">You save</span>
