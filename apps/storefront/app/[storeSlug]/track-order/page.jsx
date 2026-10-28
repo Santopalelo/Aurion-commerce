@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Search, Package, Mail, Hash, ArrowRight, AlertCircle } from 'lucide-react';
-import { storefrontApi } from '../../lib/api';
+import { storefrontApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
 
 export default function TrackOrderPage() {
