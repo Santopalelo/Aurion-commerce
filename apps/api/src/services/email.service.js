@@ -1,59 +1,50 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 import { env } from '../config/env.js';
 
-/**
- * Email Service using Resend
- *
- * Sends transactional emails (password reset, verification, order confirmations)
- */
+let transporter = null;
 
-let resend = null;
+const EMAIL_USER = process.env.EMAIL_USER || process.env.GMAIL_USER;
+const EMAIL_PASS = process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD;
 
-if (process.env.RESEND_API_KEY) {
-  resend = new Resend(process.env.RESEND_API_KEY);
-  console.log('✅ Resend email service configured');
+if (EMAIL_USER && EMAIL_PASS) {
+  transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: EMAIL_USER,
+      pass: EMAIL_PASS,
+    },
+  });
+  console.log('✅ Gmail SMTP email service configured');
 } else {
-  console.warn('⚠️  RESEND_API_KEY not set. Emails will not be sent.');
+  console.warn('⚠️  EMAIL_USER/EMAIL_PASS not set. Emails will not be sent.');
 }
 
-const FROM_EMAIL = process.env.EMAIL_FROM || 'Aurion Commerce <onboarding@resend.dev>';
+const FROM_EMAIL = process.env.EMAIL_FROM || `Aurion Commerce <${EMAIL_USER}>`;
 const STOREFRONT_URL = process.env.PRODUCTION_STOREFRONT_URL || 'http://localhost:3000';
 const DASHBOARD_URL = process.env.PRODUCTION_DASHBOARD_URL || 'http://localhost:5173';
 
-/**
- * Send an email
- */
 export const sendEmail = async ({ to, subject, html, text }) => {
-  if (!resend) {
-    console.warn('⚠️  Email not sent (Resend not configured):', { to, subject });
-    return { success: false, reason: 'Resend not configured' };
+  if (!transporter) {
+    console.warn('⚠️  Email not sent (SMTP not configured):', { to, subject });
+    return { success: false, reason: 'SMTP not configured' };
   }
 
   try {
-    const { data, error } = await resend.emails.send({
+    const info = await transporter.sendMail({
       from: FROM_EMAIL,
       to,
       subject,
       html,
       text,
     });
-
-    if (error) {
-      console.error('❌ Email send error:', error);
-      return { success: false, error };
-    }
-
     console.log(`✅ Email sent to ${to}: ${subject}`);
-    return { success: true, id: data?.id };
+    return { success: true, id: info.messageId };
   } catch (error) {
     console.error('❌ Email service error:', error);
     return { success: false, error: error.message };
   }
 };
 
-/**
- * Send password reset email (for merchants)
- */
 export const sendPasswordResetEmail = async ({ to, firstName, resetToken }) => {
   const resetUrl = `${DASHBOARD_URL}/reset-password?token=${resetToken}`;
 
@@ -66,8 +57,6 @@ export const sendPasswordResetEmail = async ({ to, firstName, resetToken }) => {
       </head>
       <body style="margin:0; padding:0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:#f9fafb;">
         <div style="max-width:600px; margin:0 auto; padding:40px 20px;">
-
-          <!-- Logo -->
           <div style="text-align:center; margin-bottom:32px;">
             <div style="display:inline-block; width:56px; height:56px; background:linear-gradient(135deg,#6366F1,#4338CA); border-radius:14px; text-align:center; line-height:56px;">
               <span style="font-size:28px;">✨</span>
@@ -75,7 +64,6 @@ export const sendPasswordResetEmail = async ({ to, firstName, resetToken }) => {
             <h1 style="margin:12px 0 0; font-size:24px; color:#111827;">Aurion Commerce</h1>
           </div>
 
-          <!-- Card -->
           <div style="background:white; border-radius:16px; padding:40px; box-shadow:0 4px 6px rgba(0,0,0,0.05);">
             <h2 style="margin:0 0 16px; font-size:22px; color:#111827;">Reset your password</h2>
             <p style="margin:0 0 20px; color:#4b5563; font-size:15px; line-height:1.6;">
@@ -106,7 +94,6 @@ export const sendPasswordResetEmail = async ({ to, firstName, resetToken }) => {
             </div>
           </div>
 
-          <!-- Footer -->
           <div style="text-align:center; margin-top:32px;">
             <p style="margin:0; color:#9ca3af; font-size:13px;">
               © ${new Date().getFullYear()} Aurion Commerce. All rights reserved.
@@ -137,9 +124,6 @@ This link expires in 1 hour. If you didn't request this, you can safely ignore t
   });
 };
 
-/**
- * Send welcome email after registration
- */
 export const sendWelcomeEmail = async ({ to, firstName }) => {
   const html = `
     <!DOCTYPE html>
@@ -191,9 +175,6 @@ export const sendWelcomeEmail = async ({ to, firstName }) => {
   });
 };
 
-/**
- * Send order confirmation email
- */
 export const sendOrderConfirmationEmail = async ({ to, order, store, storeSlug }) => {
   const currencySymbol = store?.currencySymbol || '$';
   const orderUrl = `${STOREFRONT_URL}/${storeSlug}/orders/${order.orderNumber}?email=${encodeURIComponent(to)}`;
@@ -247,30 +228,31 @@ export const sendOrderConfirmationEmail = async ({ to, order, store, storeSlug }
             </table>
 
             <div style="margin-top:16px; padding-top:16px; border-top:2px solid #f3f4f6;">
-              <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+              <div style="margin-bottom:8px;">
                 <span style="color:#6b7280;">Subtotal</span>
-                <span style="color:#111827;">${currencySymbol}${Number(order.pricing?.subtotal || 0).toFixed(2)}</span>
+                <span style="color:#111827; float:right;">${currencySymbol}${Number(order.pricing?.subtotal || 0).toFixed(2)}</span>
               </div>
               ${
                 order.pricing?.discountAmount > 0
-                  ? `<div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                  ? `<div style="margin-bottom:8px;">
                        <span style="color:#059669;">Discount</span>
-                       <span style="color:#059669;">-${currencySymbol}${Number(order.pricing.discountAmount).toFixed(2)}</span>
+                       <span style="color:#059669; float:right;">-${currencySymbol}${Number(order.pricing.discountAmount).toFixed(2)}</span>
                      </div>`
                   : ''
               }
-              <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+              <div style="margin-bottom:8px;">
                 <span style="color:#6b7280;">Shipping</span>
-                <span style="color:#111827;">${order.pricing?.shippingCost === 0 ? 'FREE' : currencySymbol + Number(order.pricing?.shippingCost || 0).toFixed(2)}</span>
+                <span style="color:#111827; float:right;">${order.pricing?.shippingCost === 0 ? 'FREE' : currencySymbol + Number(order.pricing?.shippingCost || 0).toFixed(2)}</span>
               </div>
-              <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+              <div style="margin-bottom:8px;">
                 <span style="color:#6b7280;">Tax</span>
-                <span style="color:#111827;">${currencySymbol}${Number(order.pricing?.taxAmount || 0).toFixed(2)}</span>
+                <span style="color:#111827; float:right;">${currencySymbol}${Number(order.pricing?.taxAmount || 0).toFixed(2)}</span>
               </div>
-              <div style="display:flex; justify-content:space-between; padding-top:12px; border-top:1px solid #f3f4f6; margin-top:12px;">
+              <div style="padding-top:12px; border-top:1px solid #f3f4f6; margin-top:12px;">
                 <span style="font-weight:700; font-size:16px; color:#111827;">Total</span>
-                <span style="font-weight:700; font-size:16px; color:#111827;">${currencySymbol}${Number(order.pricing?.total || 0).toFixed(2)}</span>
+                <span style="font-weight:700; font-size:16px; color:#111827; float:right;">${currencySymbol}${Number(order.pricing?.total || 0).toFixed(2)}</span>
               </div>
+              <div style="clear:both;"></div>
             </div>
 
             <div style="text-align:center; margin:32px 0 8px;">
