@@ -5,6 +5,7 @@ import ApiResponse from '../../utils/ApiResponse.js';
 import ApiError from '../../utils/ApiError.js';
 import asyncHandler from '../../utils/asyncHandler.js';
 import { env } from '../../config/env.js';
+import { sendWelcomeEmail } from '../../services/email.service.js';
 
 /**
  * Generate JWT token for customer
@@ -83,6 +84,16 @@ export const registerCustomer = asyncHandler(async (req, res) => {
 
   // Generate token
   const token = generateCustomerToken(customer._id, store._id);
+
+  // Send welcome email (non-blocking)
+  try {
+    await sendWelcomeEmail({
+      to: customer.email,
+      firstName: customer.firstName,
+    });
+  } catch (emailError) {
+    console.error('Failed to send customer welcome email:', emailError.message);
+  }
 
   // Update login stats
   customer.lastLoginAt = new Date();
