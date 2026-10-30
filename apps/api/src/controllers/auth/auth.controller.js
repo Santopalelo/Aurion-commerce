@@ -10,7 +10,7 @@ import {
   refreshTokenCookieOptions,
   clearRefreshTokenCookieOptions,
 } from '../../utils/generateToken.js';
-import { sendPasswordResetEmail, sendWelcomeEmail } from '../../services/email.service.js';
+import { sendPasswordResetEmail } from '../../services/email.service.js';
 
 /**
  * @route   POST /api/v1/auth/register
@@ -46,16 +46,6 @@ export const register = asyncHandler(async (req, res) => {
     null,
     user.tokenVersion || 0
   );
-
-  // Send welcome email (non-blocking)
-  try {
-    await sendWelcomeEmail({
-      to: user.email,
-      firstName: user.firstName,
-    });
-  } catch (emailError) {
-    console.error('Failed to send welcome email:', emailError.message);
-  }
 
   // Set refresh token in httpOnly cookie
   res.cookie('refreshToken', refreshToken, refreshTokenCookieOptions);
