@@ -9,7 +9,6 @@ import Store from '../models/tenant/Store.model.js';
 import ApiError from '../utils/ApiError.js';
 import { toStripeAmount } from '../utils/currency.js';
 import { recordDiscountUsage } from './discount.service.js';
-import { sendOrderConfirmationEmail } from './email.service.js';
 
 /**
  * Checkout Service
@@ -531,18 +530,6 @@ export const finalizeCheckout = async ({
 
     await dbSession.commitTransaction();
     dbSession.endSession();
-
-    // Send order confirmation email (non-blocking)
-    try {
-      await sendOrderConfirmationEmail({
-        to: order.customerSnapshot.email,
-        order,
-        store,
-        storeSlug: store.slug,
-      });
-    } catch (emailError) {
-      console.error('Failed to send order confirmation email:', emailError.message);
-    }
 
     return order;
   } catch (error) {
