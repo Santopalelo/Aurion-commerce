@@ -144,6 +144,97 @@ View your order: ${orderUrl}
   }
 };
 
+export const sendPasswordResetEmail = async ({ to, firstName, resetToken }) => {
+  if (!resend) {
+    console.warn('⚠️  Email not sent (Resend not configured):', { to });
+    return { success: false, reason: 'Resend not configured' };
+  }
+
+  const resetUrl = `${STOREFRONT_URL}/reset-password?token=${resetToken}`;
+
+  try {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Password Reset</title>
+        </head>
+        <body style="margin:0; padding:0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:#f9fafb;">
+          <div style="max-width:600px; margin:0 auto; padding:40px 20px;">
+            <div style="background:white; border-radius:12px; padding:40px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+              <div style="text-align:center; margin-bottom:32px;">
+                <h1 style="margin:0; color:#111827; font-size:28px;">Reset Your Password</h1>
+              </div>
+
+              <p style="margin:0 0 16px; color:#374151; font-size:16px;">
+                Hi ${firstName || 'there'},
+              </p>
+
+              <p style="margin:0 0 16px; color:#374151; font-size:16px;">
+                You requested a password reset for your Aurion Commerce account. Click the button below to set a new password:
+              </p>
+
+              <div style="text-align:center; margin:32px 0;">
+                <a
+                  href="${resetUrl}"
+                  style="display:inline-block; background:#2563eb; color:white; padding:14px 32px; border-radius:8px; text-decoration:none; font-weight:600; font-size:16px;"
+                >
+                  Reset Password
+                </a>
+              </div>
+
+              <p style="margin:0 0 16px; color:#6b7280; font-size:14px;">
+                This link will expire in 1 hour. If you didn't request this, you can safely ignore this email.
+              </p>
+
+              <hr style="border:none; border-top:1px solid #e5e7eb; margin:32px 0;">
+
+              <p style="margin:0; color:#9ca3af; font-size:13px;">
+                © ${new Date().getFullYear()} Aurion Commerce. All rights reserved.
+              </p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const text = `
+Reset Your Password
+
+Hi ${firstName || 'there'},
+
+You requested a password reset for your Aurion Commerce account. Click the link below to set a new password:
+
+${resetUrl}
+
+This link will expire in 1 hour. If you didn't request this, you can safely ignore this email.
+
+© ${new Date().getFullYear()} Aurion Commerce. All rights reserved.
+    `.trim();
+
+    const { data, error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject: 'Reset Your Aurion Commerce Password',
+      html,
+      text,
+    });
+
+    if (error) {
+      console.error('❌ Email send error:', error);
+      return { success: false, error };
+    }
+
+    console.log(`✅ Email sent to ${to}: Password Reset`);
+    return { success: true, id: data?.id };
+  } catch (error) {
+    console.error('❌ Email service error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 export default {
   sendOrderConfirmationEmail,
+  sendPasswordResetEmail,
 };

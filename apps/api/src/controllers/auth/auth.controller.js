@@ -201,6 +201,12 @@ export const refreshToken = asyncHandler(async (req, res) => {
   res.cookie('refreshToken', newRefreshToken, refreshTokenCookieOptions);
 
   const newAccessToken = generateAccessToken(user._id);
+
+  return res.status(200).json(
+    ApiResponse.success('Token refreshed successfully', {
+      accessToken: newAccessToken,
+    })
+  );
 });
 
 /**
@@ -216,6 +222,29 @@ export const logout = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(ApiResponse.success('Logged out successfully'));
+});
+
+/**
+ * @route   POST /api/v1/auth/logout-all
+ * @desc    Sign out of all devices (revoke all refresh tokens)
+ * @access  Private
+ */
+export const logoutAll = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    throw new ApiError(404, 'User not found', 'USER_NOT_FOUND');
+  }
+
+  // Increment token version to invalidate all refresh tokens
+  user.tokenVersion = (user.tokenVersion || 0) + 1;
+  await user.save();
+
+  // Clear the current refresh token cookie
+  res.clearCookie('refreshToken', clearRefreshTokenCookieOptions);
+
+  return res.status(200).json(
+    ApiResponse.success('Signed out of all devices successfully')
+  );
 });
 
 /**
@@ -332,6 +361,9 @@ export const resetPassword = asyncHandler(async (req, res) => {
   user.passwordChangedAt = new Date();
   user.tokenVersion = (user.tokenVersion || 0) + 1;
   await user.save();
+
+  // Clear refresh token cookie (server-side) so the browser doesn't keep sending it
+  res.clearCookie('refreshToken', clearRefreshTokenCookieOptions);
 
   return res.status(200).json(
     ApiResponse.success('Password reset successfully. You can now log in.')

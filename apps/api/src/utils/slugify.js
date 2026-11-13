@@ -1,4 +1,5 @@
 import slugifyLib from 'slugify';
+import mongoose from 'mongoose';
 
 /**
  * Generate a URL-safe slug from a string
@@ -20,8 +21,8 @@ export const generateSlug = (text) => {
 
 /**
  * Generate a unique slug by checking against a model
- * If the slug exists, appends -2, -3, etc until unique
- * Falls back to timestamp-based suffix to avoid infinite loops on races.
+ * If the slug exists, appends -2, -3, etc until unique.
+ * Uses retry-on-duplicate-key to handle race conditions.
  *
  * @param {string} text - The text to slugify
  * @param {Model} Model - Mongoose model to check against
@@ -39,24 +40,32 @@ export const generateUniqueSlug = async (text, Model, field = 'slug', extraQuery
   let slug = baseSlug;
   let counter = 2;
 
-  // Keep checking until we find a unique slug
-  while (true) {
-    const query = { [field]: slug, ...extraQuery };
-    const existing = await Model.findOne(query);
+  // Try up to 5 times with incrementing suffixes
+  // If we hit a duplicate key error (race condition), retry with next suffix
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      const query = { [field]: slug, ...extraQuery };
+      const existing = await Model.findOne(query);
 
-    if (!existing) {
-      return slug;
-    }
+      if (!existing) {
+        return slug;
+      }
 
-    slug = `${baseSlug}-${counter}`;
-    counter++;
-
-    // Safety check to prevent infinite loop
-    if (counter > 1000) {
-      slug = `${baseSlug}-${Date.now()}`;
-      return slug;
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    } catch (error) {
+      // If it's a duplicate key error from a concurrent insert, retry
+      if (error.code === 11000) {
+        slug = `${baseSlug}-${counter}`;
+        counter++;
+        continue;
+      }
+      throw error;
     }
   }
+
+  // Fallback: use timestamp to guarantee uniqueness
+  return `${baseSlug}-${Date.now()}`;
 };
 
 export default generateSlug;

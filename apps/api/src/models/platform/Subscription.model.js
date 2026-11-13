@@ -73,6 +73,7 @@ const SubscriptionSchema = new mongoose.Schema(
       staff: { type: Number, default: 1 },               // Max staff members
       storageMB: { type: Number, default: 500 },         // Cloudinary storage limit
       transactionFeePercent: { type: Number, default: 2 }, // % Aurion takes per sale
+      stores: { type: Number, default: 1 },              // Max stores user can own
 
       // Feature flags
       customDomain: { type: Boolean, default: false },
@@ -90,6 +91,7 @@ const SubscriptionSchema = new mongoose.Schema(
       products: { type: Number, default: 0 },
       staff: { type: Number, default: 0 },
       storageMB: { type: Number, default: 0 },
+      stores: { type: Number, default: 0 }, // Number of stores owned
 
       // Reset monthly
       ordersThisMonth: { type: Number, default: 0 },

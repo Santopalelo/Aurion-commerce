@@ -18,14 +18,36 @@ export const createStore = asyncHandler(async (req, res) => {
   const { name, description, currency, language, timezone, business, contact } = req.body;
 
   // ============================================
-  // Check if user already has a store
+  // Check if user has reached store ownership limit
   // ============================================
+  // Find all subscriptions owned by this user
+  const userSubscriptions = await Subscription.find({ owner: userId });
+  
+  // Determine the maximum stores allowed based on the highest plan
+  const planLimits = {
+    free: 1,
+    starter: 2,
+    growth: 5,
+    pro: 10,
+    enterprise: Infinity,
+  };
+  
+  let maxStores = 1; // Default to free plan limit
+  for (const sub of userSubscriptions) {
+    const planLimit = planLimits[sub.plan] || 1;
+    // Use the subscription's stores limit if explicitly set, otherwise use plan default
+    const subStoreLimit = sub.limits?.stores ?? planLimit;
+    if (subStoreLimit > maxStores) {
+      maxStores = subStoreLimit;
+    }
+  }
+
   const ownedCount = await Store.countDocuments({ owner: userId });
-  if (ownedCount >= 1) {
+  if (ownedCount >= maxStores) {
     throw new ApiError(
       409,
-      'You already have a store. You can only own one store on this plan.',
-      'STORE_EXISTS'
+      `You have reached the maximum number of stores (${maxStores}) for your current plan. Upgrade to create more stores.`,
+      'STORE_LIMIT_REACHED'
     );
   }
 

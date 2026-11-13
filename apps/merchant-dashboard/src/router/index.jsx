@@ -16,6 +16,8 @@ import DiscountList from "../pages/discounts/DiscountList";
 import GeneralSettings from "../pages/settings/GeneralSettings";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import ResetPassword from "../pages/auth/ResetPassword";
+import Analytics from "../pages/analytics/Analytics";
+import AurionStore from "../pages/aurion-store/AurionStore";
 
 const AppRouter = () => {
   return (
@@ -55,26 +57,8 @@ const AppRouter = () => {
         <Route path="/customers" element={<CustomerList />} />
         <Route path="/discounts" element={<DiscountList />} />
         <Route path="/settings" element={<GeneralSettings />} />
-        <Route
-          path="/analytics"
-          element={
-            <div className="card">
-              <h1 className="text-2xl font-bold">Analytics</h1>
-              <p className="text-gray-600 mt-2">Coming soon!</p>
-            </div>
-          }
-        />
-        <Route
-          path="/aurion-store"
-          element={
-            <div className="card">
-              <h1 className="text-2xl font-bold">Aurion Store</h1>
-              <p className="text-gray-600 mt-2">
-                Browse themes and plugins. Coming soon!
-              </p>
-            </div>
-          }
-        />
+        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/aurion-store" element={<AurionStore />} />
       </Route>
 
       {/* DEFAULT REDIRECTS */}

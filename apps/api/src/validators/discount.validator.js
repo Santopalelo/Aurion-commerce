@@ -51,16 +51,38 @@ export const updateDiscountSchema = Joi.object({
   type: Joi.string()
     .valid('percentage', 'fixed_amount', 'free_shipping', 'buy_x_get_y')
     .optional(),
-  value: Joi.number().min(0).optional(),
+  value: Joi.number().min(0).when('type', {
+    is: Joi.string().valid('free_shipping', 'buy_x_get_y'),
+    then: Joi.optional(),
+    otherwise: Joi.required(),
+  }),
   buyXGetY: Joi.object({
-    buyQuantity: Joi.number().integer().min(1).optional(),
-    getQuantity: Joi.number().integer().min(1).optional(),
+    buyQuantity: Joi.number().integer().min(1).required(),
+    getQuantity: Joi.number().integer().min(1).required(),
     getDiscountType: Joi.string()
       .valid('percentage', 'fixed_amount', 'free')
+      .default('free'),
+    getDiscountValue: Joi.number().min(0).default(0),
+  })
+    .when('type', {
+      is: 'buy_x_get_y',
+      then: Joi.required(),
+      otherwise: Joi.optional(),
+    }),
+  conditions: Joi.object({
+    minimumOrderAmount: Joi.number().min(0).optional().allow(null, ''),
+    minimumQuantity: Joi.number().integer().min(1).optional().allow(null, ''),
+    appliesTo: Joi.string()
+      .valid('all_products', 'specific_products', 'specific_categories', 'specific_collections')
       .optional(),
-    getDiscountValue: Joi.number().min(0).optional(),
+    products: Joi.array().items(Joi.string()).optional(),
+    categories: Joi.array().items(Joi.string()).optional(),
+    collections: Joi.array().items(Joi.string()).optional(),
+    customerEligibility: Joi.string()
+      .valid('all_customers', 'specific_customers', 'first_time_only')
+      .optional(),
+    eligibleCustomers: Joi.array().items(Joi.string()).optional(),
   }).optional(),
-  conditions: Joi.object().optional(),
   usageLimit: Joi.number().integer().min(1).optional().allow(null, ''),
   usageLimitPerCustomer: Joi.number().integer().min(1).optional(),
   startsAt: Joi.date().optional(),

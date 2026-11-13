@@ -3,11 +3,12 @@ import {
   register,
   login,
   logout,
+  logoutAll,
   refreshToken,
   getMe,
-  forgotPassword,      
-  resetPassword,       
-  verifyResetToken,    
+  forgotPassword,
+  resetPassword,
+  verifyResetToken,
 } from '../../controllers/auth/auth.controller.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
 import { requireTrustedOrigin } from '../../middleware/csrf.middleware.js';
@@ -42,6 +43,10 @@ router.post('/refresh-token', requireTrustedOrigin, refreshToken);
 // POST /api/v1/auth/logout
 // Origin-guarded: this route clears the refresh cookie.
 router.post('/logout', requireTrustedOrigin, authMiddleware, logout);
+
+// POST /api/v1/auth/logout-all
+// Origin-guarded: this route clears the refresh cookie and revokes all tokens.
+router.post('/logout-all', requireTrustedOrigin, authMiddleware, logoutAll);
 
 // GET /api/v1/auth/me
 router.get('/me', authMiddleware, getMe);
